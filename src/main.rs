@@ -26,6 +26,7 @@ enum Record<'a> {
     Header(Header<'a>),
     TiplocInsert(TiplocInsert<'a>),
     TiplocAmend(TiplocAmend<'a>),
+    Association(Association<'a>),
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -70,11 +71,54 @@ struct TiplocAmend<'a> {
     new_tiploc: Cow<'a, str>,
 }
 
+#[derive(Debug, Clone, Eq, PartialEq)]
+enum AssociationTransactionType {
+    New,
+    Delete,
+    Revise,
+}
+#[derive(Debug, Clone, Eq, PartialEq)]
+enum AssociationCategory {
+    Join,
+    Divide,
+    Next,
+    Unspecified,
+}
+#[derive(Debug, Clone, Eq, PartialEq)]
+enum AssociationType {
+    Passenger,
+    Operational,
+    Unspecified,
+}
+#[derive(Debug, Clone, Eq, PartialEq)]
+enum AssociationSTP {
+    Cancellation,
+    New,
+    Overlay,
+    Permanent,
+}
+#[derive(Debug, Clone, Eq, PartialEq)]
+struct Association<'a> {
+    transaction_type: AssociationTransactionType,
+    main_uid: Cow<'a, str>,
+    assoc_uid: Cow<'a, str>,
+    start_date: Cow<'a, str>,
+    end_date: Cow<'a, str>,
+    days: Cow<'a, str>,
+    category: AssociationCategory,
+    tiploc: Cow<'a, str>,
+    tiploc_suffix: Cow<'a, str>,
+    assoc_tiploc_suffix: Cow<'a, str>,
+    atype: AssociationType,
+    stp: AssociationSTP,
+}
+
 fn parse<'a, E: ParseError<&'a [u8]>>(i: &'a [u8]) -> IResult<&'a [u8], Record, E> {
     let p = alt((
         map(parse_header(), Record::Header),
         map(parse_tiploc_insert(), Record::TiplocInsert),
         map(parse_tiploc_amend(), Record::TiplocAmend),
+        map(parse_association(), Record::Association),
     ));
     terminated(p, char('\n'))(i)
 }
@@ -176,6 +220,63 @@ fn parse_tiploc_amend<'a, E: ParseError<&'a [u8]>>(
     }
 }
 
+fn parse_association<'a, E: ParseError<&'a [u8]>>(
+) -> impl Fn(&'a [u8]) -> IResult<&'a [u8], Association, E> {
+    |i: &'a [u8]| -> IResult<&'a [u8], Association, E> {
+        let (i, _) = tag("AA")(i)?;
+        let (i, ttype) = alt((
+            map(char('N'), |_| AssociationTransactionType::New),
+            map(char('D'), |_| AssociationTransactionType::Delete),
+            map(char('R'), |_| AssociationTransactionType::Revise),
+        ))(i)?;
+        let (i, main_uid) = take(6usize)(i)?;
+        let (i, assoc_uid) = take(6usize)(i)?;
+        let (i, start_date) = take(6usize)(i)?;
+        let (i, end_date) = take(6usize)(i)?;
+        let (i, days) = take(7usize)(i)?; // Bit string?
+        let (i, category) = alt((
+            map(tag("JJ"), |_| AssociationCategory::Join),
+            map(tag("VV"), |_| AssociationCategory::Divide),
+            map(tag("NP"), |_| AssociationCategory::Next),
+            map(tag("  "), |_| AssociationCategory::Unspecified),
+        ))(i)?;
+        let (i, _date) = take(1usize)(i)?;
+        let (i, tiploc) = take(7usize)(i)?;
+        let (i, tiploc_suffix) = take(1usize)(i)?;
+        let (i, assoc_tiploc_suffix) = take(1usize)(i)?;
+        let (i, _) = char('T')(i)?;
+        let (i, atype) = alt((
+            map(char('P'), |_| AssociationType::Passenger),
+            map(char('O'), |_| AssociationType::Operational),
+            map(char(' '), |_| AssociationType::Unspecified),
+        ))(i)?;
+        let (i, _spare) = take_while_m_n(31, 31, is_space)(i)?;
+        let (i, stp) = alt((
+            map(char('C'), |_| AssociationSTP::Cancellation),
+            map(char('N'), |_| AssociationSTP::New),
+            map(char('O'), |_| AssociationSTP::Overlay),
+            map(char('P'), |_| AssociationSTP::Permanent),
+        ))(i)?;
+        Ok((
+            i,
+            Association {
+                transaction_type: ttype,
+                main_uid: String::from_utf8_lossy(main_uid),
+                assoc_uid: String::from_utf8_lossy(assoc_uid),
+                start_date: String::from_utf8_lossy(start_date),
+                end_date: String::from_utf8_lossy(end_date),
+                days: String::from_utf8_lossy(days),
+                category: category,
+                tiploc: String::from_utf8_lossy(tiploc),
+                tiploc_suffix: String::from_utf8_lossy(tiploc_suffix),
+                assoc_tiploc_suffix: String::from_utf8_lossy(assoc_tiploc_suffix),
+                atype: atype,
+                stp: stp,
+            },
+        ))
+    }
+}
+
 fn main() -> Fallible<()> {
     let opts = Opts::from_args();
 
@@ -212,7 +313,7 @@ fn main() -> Fallible<()> {
 }
 
 fn show_error(err: VerboseError<&[u8]>) {
-    const SNIPPET_LEN: usize = 120;
+    const SNIPPET_LEN: usize = 240;
     for (i, kind) in err.errors {
         println!(
             "Err: {:?}: {:?}{}",
@@ -230,7 +331,7 @@ mod test {
 
     #[test]
     fn should_parse_full_header() {
-        let p = complete(parse_header::<VerboseError<_>>());
+        let p = parse_header::<VerboseError<_>>();
         let hdr =
             b"HDTPS.UDFROC1.PD1907050507191939DFROC2S       FA050719040720                    ";
         let (rest, _val) = p(hdr).expect("parse_header");
@@ -277,6 +378,32 @@ mod test {
                 crs: "   ".into(),
                 nlc_desc: "                ".into(),
                 new_tiploc: "       ".into(),
+            }
+        )
+    }
+    #[test]
+    fn should_parse_association() {
+        let p = complete(parse_association::<VerboseError<_>>());
+        let hdr =
+            b"AANY80987Y808801601041602121111100JJSPRST     TP                               P";
+        assert_eq!(80, hdr.len());
+        let (rest, insert) = p(hdr).expect("parse_header");
+        assert_eq!(rest, b"");
+        assert_eq!(
+            insert,
+            Association {
+                transaction_type: AssociationTransactionType::New,
+                main_uid: "Y80987".into(),
+                assoc_uid: "Y80880".into(),
+                start_date: "160104".into(),
+                end_date: "160212".into(),
+                days: "1111100".into(),
+                category: AssociationCategory::Join,
+                tiploc: "PRST   ".into(),
+                tiploc_suffix: " ".into(),
+                assoc_tiploc_suffix: " ".into(),
+                atype: AssociationType::Passenger,
+                stp: AssociationSTP::Permanent,
             }
         )
     }
