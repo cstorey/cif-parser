@@ -233,16 +233,18 @@ mod test {
         let p = complete(parse_header::<VerboseError<_>>());
         let hdr =
             b"HDTPS.UDFROC1.PD1907050507191939DFROC2S       FA050719040720                    ";
-        let _val = p(hdr).expect("parse_header");
+        let (rest, _val) = p(hdr).expect("parse_header");
+        assert_eq!(rest, b"");
     }
 
     #[test]
     fn should_parse_tiploc_insert() {
-        let p = complete(parse_tiploc_insert::<VerboseError<_>>());
+        let p = parse_tiploc_insert::<VerboseError<_>>();
         let hdr =
             b"TIBLTNODR24853600DBOLTON-UPON-DEARNE        24011   0BTDBOLTON ON DEARNE        ";
         assert_eq!(80, hdr.len());
-        let (_, insert) = p(hdr).expect("parse_header");
+        let (rest, insert) = p(hdr).expect("parse_header");
+        assert_eq!(rest, b"");
         assert_eq!(
             insert,
             TiplocInsert {
@@ -262,7 +264,8 @@ mod test {
         let hdr =
             b"TAMBRK94200590970AMILLBROOK SIG E942        86536   0                           ";
         assert_eq!(80, hdr.len());
-        let (_, insert) = p(hdr).expect("parse_header");
+        let (rest, insert) = p(hdr).expect("parse_header");
+        assert_eq!(rest, b"");
         assert_eq!(
             insert,
             TiplocAmend {
