@@ -382,16 +382,16 @@ fn main() -> Fallible<()> {
                 }
 
                 Err(Err::Incomplete(need)) => {
-                    println!("Needed: {:?}", need);
+                    eprintln!("Needed: {:?}", need);
                     break;
                 }
                 Err(Err::Error(err)) => {
-                    println!("Error:");
+                    eprintln!("Error:");
                     show_error(err);
                     break;
                 }
                 Err(Err::Failure(err)) => {
-                    println!("Failure:");
+                    eprintln!("Failure:");
                     show_error(err);
                     break;
                 }
@@ -405,7 +405,7 @@ fn main() -> Fallible<()> {
 fn show_error(err: VerboseError<&[u8]>) {
     const SNIPPET_LEN: usize = 240;
     for (i, kind) in err.errors {
-        println!(
+        eprintln!(
             "Err: {:?}: {:?}{}",
             kind,
             String::from_utf8_lossy(&i[..SNIPPET_LEN]),
