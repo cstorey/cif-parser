@@ -5,6 +5,7 @@ use std::path::PathBuf;
 use failure::Fallible;
 use memmap::Mmap;
 use nom::{
+    branch::alt,
     bytes::streaming::*,
     character::is_space,
     character::streaming::*,
@@ -21,13 +22,19 @@ struct Opts {
 }
 
 #[derive(Debug, Clone)]
+enum FullOrUpdate {
+    Full,
+    Update,
+}
+
+#[derive(Debug, Clone)]
 struct Header<'a> {
     file_mainframe_identity: Cow<'a, str>,
     extract_date: Cow<'a, str>,
     extract_time: Cow<'a, str>,
     current_file: Cow<'a, str>,
     last_file: Cow<'a, str>,
-    update_indicator: char,
+    update_indicator: FullOrUpdate,
     version: Cow<'a, str>,
     user_start_date: Cow<'a, str>,
     user_end_date: Cow<'a, str>,
@@ -47,7 +54,10 @@ fn parse_header<'a, E: ParseError<&'a [u8]>>() -> impl Fn(&'a [u8]) -> IResult<&
         let (i, extract_time) = take(4usize)(i)?;
         let (i, current_file) = take(7usize)(i)?;
         let (i, last_file) = take(7usize)(i)?;
-        let (i, update_indicator) = one_of(b"UF" as &[u8])(i)?;
+        let (i, update_indicator) = alt((
+            map(char('U'), |_| FullOrUpdate::Update),
+            map(char('F'), |_| FullOrUpdate::Full),
+        ))(i)?;
         let (i, version) = take(1usize)(i)?;
         let (i, user_start_date) = take(6usize)(i)?;
         let (i, user_end_date) = take(6usize)(i)?;
