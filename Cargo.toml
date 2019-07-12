@@ -5,3 +5,7 @@ authors = ["Ceri Storey <cez@necrofish.org.uk>"]
 edition = "2018"
 
 [dependencies]
+nom = "5.0.0"
+structopt = "0.2.18"
+memmap = "0.7.0"
+failure = "0.1.5"
