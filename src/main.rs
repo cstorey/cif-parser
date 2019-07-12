@@ -335,7 +335,7 @@ mod test {
         let hdr =
             b"HDTPS.UDFROC1.PD1907050507191939DFROC2S       FA050719040720                    ";
         let (rest, _val) = p(hdr).expect("parse_header");
-        assert_eq!(rest, b"");
+        assert_eq!(String::from_utf8_lossy(rest), "");
     }
 
     #[test]
@@ -345,7 +345,7 @@ mod test {
             b"TIBLTNODR24853600DBOLTON-UPON-DEARNE        24011   0BTDBOLTON ON DEARNE        ";
         assert_eq!(80, hdr.len());
         let (rest, insert) = p(hdr).expect("parse_header");
-        assert_eq!(rest, b"");
+        assert_eq!(String::from_utf8_lossy(rest), "");
         assert_eq!(
             insert,
             TiplocInsert {
@@ -366,7 +366,7 @@ mod test {
             b"TAMBRK94200590970AMILLBROOK SIG E942        86536   0                           ";
         assert_eq!(80, hdr.len());
         let (rest, insert) = p(hdr).expect("parse_header");
-        assert_eq!(rest, b"");
+        assert_eq!(String::from_utf8_lossy(rest), "");
         assert_eq!(
             insert,
             TiplocAmend {
@@ -388,7 +388,7 @@ mod test {
             b"AANY80987Y808801601041602121111100JJSPRST     TP                               P";
         assert_eq!(80, hdr.len());
         let (rest, insert) = p(hdr).expect("parse_header");
-        assert_eq!(rest, b"");
+        assert_eq!(String::from_utf8_lossy(rest), "");
         assert_eq!(
             insert,
             Association {
