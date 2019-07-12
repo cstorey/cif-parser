@@ -11,6 +11,7 @@ use nom::{
     character::streaming::*,
     combinator::{cut, map, opt},
     error::*,
+    sequence::terminated,
     Err, IResult,
 };
 use structopt::StructOpt;
@@ -20,14 +21,19 @@ use structopt::StructOpt;
 struct Opts {
     files: Vec<PathBuf>,
 }
+#[derive(Debug, Clone, Eq, PartialEq)]
+enum Record<'a> {
+    Header(Header<'a>),
+    TiplocInsert(TiplocInsert<'a>),
+}
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 enum FullOrUpdate {
     Full,
     Update,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 struct Header<'a> {
     file_mainframe_identity: Cow<'a, str>,
     extract_date: Cow<'a, str>,
@@ -40,9 +46,23 @@ struct Header<'a> {
     user_end_date: Cow<'a, str>,
 }
 
-fn parse<'a, E: ParseError<&'a [u8]>>(i: &'a [u8]) -> IResult<&'a [u8], Header, E> {
-    let p = parse_header();
-    p(i)
+#[derive(Debug, Clone, Eq, PartialEq)]
+struct TiplocInsert<'a> {
+    tiploc: Cow<'a, str>,
+    nlc: Cow<'a, str>,
+    nlc_check: Cow<'a, str>,
+    tps_description: Cow<'a, str>,
+    stanox: Cow<'a, str>,
+    crs: Cow<'a, str>,
+    nlc_desc: Cow<'a, str>,
+}
+
+fn parse<'a, E: ParseError<&'a [u8]>>(i: &'a [u8]) -> IResult<&'a [u8], Record, E> {
+    let p = alt((
+        map(parse_header(), Record::Header),
+        map(parse_tiploc_insert(), Record::TiplocInsert),
+    ));
+    terminated(p, char('\n'))(i)
 }
 
 fn parse_header<'a, E: ParseError<&'a [u8]>>() -> impl Fn(&'a [u8]) -> IResult<&'a [u8], Header, E>
@@ -80,18 +100,114 @@ fn parse_header<'a, E: ParseError<&'a [u8]>>() -> impl Fn(&'a [u8]) -> IResult<&
     }
 }
 
+fn parse_tiploc_insert<'a, E: ParseError<&'a [u8]>>(
+) -> impl Fn(&'a [u8]) -> IResult<&'a [u8], TiplocInsert, E> {
+    |i: &'a [u8]| -> IResult<&'a [u8], TiplocInsert, E> {
+        let (i, _) = tag("TI")(i)?;
+        let (i, tiploc) = take(7usize)(i)?;
+        let (i, _) = take(2usize)(i)?; // `capitals`
+        let (i, nlc) = take(6usize)(i)?;
+        let (i, nlc_check) = take(1usize)(i)?;
+        let (i, tps_description) = take(26usize)(i)?;
+        let (i, stanox) = take(5usize)(i)?;
+        let (i, _po_code) = take(4usize)(i)?;
+        let (i, crs) = take(3usize)(i)?;
+        let (i, nlc_desc) = take(16usize)(i)?;
+        let (i, _spare) = take_while_m_n(8, 8, is_space)(i)?;
+
+        Ok((
+            i,
+            TiplocInsert {
+                tiploc: String::from_utf8_lossy(tiploc),
+                nlc: String::from_utf8_lossy(nlc),
+                nlc_check: String::from_utf8_lossy(nlc_check),
+                tps_description: String::from_utf8_lossy(tps_description),
+                stanox: String::from_utf8_lossy(stanox),
+                crs: String::from_utf8_lossy(crs),
+                nlc_desc: String::from_utf8_lossy(nlc_desc),
+            },
+        ))
+    }
+}
+
 fn main() -> Fallible<()> {
     let opts = Opts::from_args();
 
     for f in opts.files {
         let fp = File::open(f)?;
         let mmap = unsafe { Mmap::map(&fp)? };
-        match parse::<VerboseError<_>>(&mmap) {
-            Ok((_rest, val)) => println!("Ok: {:#?}", val),
+        let mut i: &[u8] = &mmap;
+        loop {
+            match parse::<VerboseError<_>>(&i) {
+                Ok((rest, val)) => {
+                    i = rest;
+                    println!("Ok: {:#?}", val)
+                }
 
-            Err(err) => println!("Err: {:?}", err),
+                Err(Err::Incomplete(need)) => {
+                    println!("Needed: {:?}", need);
+                    break;
+                }
+                Err(Err::Error(err)) => {
+                    println!("Error:");
+                    show_error(err);
+                    break;
+                }
+                Err(Err::Failure(err)) => {
+                    println!("Failure:");
+                    show_error(err);
+                    break;
+                }
+            }
         }
     }
 
     Ok(())
+}
+
+fn show_error(err: VerboseError<&[u8]>) {
+    const SNIPPET_LEN: usize = 120;
+    for (i, kind) in err.errors {
+        println!(
+            "Err: {:?}: {:?}{}",
+            kind,
+            String::from_utf8_lossy(&i[..SNIPPET_LEN]),
+            if i.len() < SNIPPET_LEN { "" } else { "…" }
+        );
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use nom::combinator::complete;
+
+    #[test]
+    fn should_parse_full_header() {
+        let p = complete(parse_header::<VerboseError<_>>());
+        let hdr =
+            b"HDTPS.UDFROC1.PD1907050507191939DFROC2S       FA050719040720                    ";
+        let _val = p(hdr).expect("parse_header");
+    }
+
+    #[test]
+    fn should_parse_tiploc_insert() {
+        let p = complete(parse_tiploc_insert::<VerboseError<_>>());
+        let hdr =
+            b"TIBLTNODR24853600DBOLTON-UPON-DEARNE        24011   0BTDBOLTON ON DEARNE        ";
+        assert_eq!(80, hdr.len());
+        let (_, insert) = p(hdr).expect("parse_header");
+        assert_eq!(
+            insert,
+            TiplocInsert {
+                tiploc: "BLTNODR".into(),
+                nlc: "853600".into(),
+                nlc_check: "D".into(),
+                tps_description: "BOLTON-UPON-DEARNE        ".into(),
+                stanox: "24011".into(),
+                crs: "BTD".into(),
+                nlc_desc: "BOLTON ON DEARNE".into(),
+            }
+        )
+    }
 }
