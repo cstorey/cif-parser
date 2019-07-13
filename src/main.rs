@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 use std::fs::File;
+use std::marker::PhantomData;
 use std::path::PathBuf;
 
 use failure::Fallible;
@@ -78,19 +79,7 @@ enum TransactionType {
     Delete,
     Revise,
 }
-#[derive(Debug, Clone, Eq, PartialEq)]
-enum AssociationCategory {
-    Join,
-    Divide,
-    Next,
-    Unspecified,
-}
-#[derive(Debug, Clone, Eq, PartialEq)]
-enum AssociationType {
-    Passenger,
-    Operational,
-    Unspecified,
-}
+
 #[derive(Debug, Clone, Eq, PartialEq)]
 enum AssociationSTP {
     Cancellation,
@@ -100,18 +89,7 @@ enum AssociationSTP {
 }
 #[derive(Debug, Clone, Eq, PartialEq)]
 struct Association<'a> {
-    transaction_type: TransactionType,
-    main_uid: Cow<'a, str>,
-    assoc_uid: Cow<'a, str>,
-    start_date: Cow<'a, str>,
-    end_date: Cow<'a, str>,
-    days: Cow<'a, str>,
-    category: AssociationCategory,
-    tiploc: Cow<'a, str>,
-    tiploc_suffix: Cow<'a, str>,
-    assoc_tiploc_suffix: Cow<'a, str>,
-    atype: AssociationType,
-    stp: AssociationSTP,
+    _phantom: PhantomData<&'a [u8]>,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -249,54 +227,12 @@ fn parse_association<'a, E: ParseError<&'a [u8]>>(
 ) -> impl Fn(&'a [u8]) -> IResult<&'a [u8], Association, E> {
     |i: &'a [u8]| -> IResult<&'a [u8], Association, E> {
         let (i, _) = tag("AA")(i)?;
-        let (i, ttype) = alt((
-            map(char('N'), |_| TransactionType::New),
-            map(char('D'), |_| TransactionType::Delete),
-            map(char('R'), |_| TransactionType::Revise),
-        ))(i)?;
-        let (i, main_uid) = take(6usize)(i)?;
-        let (i, assoc_uid) = take(6usize)(i)?;
-        let (i, start_date) = take(6usize)(i)?;
-        let (i, end_date) = take(6usize)(i)?;
-        let (i, days) = take(7usize)(i)?; // Bit string?
-        let (i, category) = alt((
-            map(tag("JJ"), |_| AssociationCategory::Join),
-            map(tag("VV"), |_| AssociationCategory::Divide),
-            map(tag("NP"), |_| AssociationCategory::Next),
-            map(tag("  "), |_| AssociationCategory::Unspecified),
-        ))(i)?;
-        let (i, _date) = take(1usize)(i)?;
-        let (i, tiploc) = take(7usize)(i)?;
-        let (i, tiploc_suffix) = take(1usize)(i)?;
-        let (i, assoc_tiploc_suffix) = take(1usize)(i)?;
-        let (i, _) = char('T')(i)?;
-        let (i, atype) = alt((
-            map(char('P'), |_| AssociationType::Passenger),
-            map(char('O'), |_| AssociationType::Operational),
-            map(char(' '), |_| AssociationType::Unspecified),
-        ))(i)?;
-        let (i, _spare) = take_while_m_n(31, 31, is_space)(i)?;
-        let (i, stp) = alt((
-            map(char('C'), |_| AssociationSTP::Cancellation),
-            map(char('N'), |_| AssociationSTP::New),
-            map(char('O'), |_| AssociationSTP::Overlay),
-            map(char('P'), |_| AssociationSTP::Permanent),
-        ))(i)?;
+        let (i, _spare) = take(78usize)(i)?;
+
         Ok((
             i,
             Association {
-                transaction_type: ttype,
-                main_uid: String::from_utf8_lossy(main_uid),
-                assoc_uid: String::from_utf8_lossy(assoc_uid),
-                start_date: String::from_utf8_lossy(start_date),
-                end_date: String::from_utf8_lossy(end_date),
-                days: String::from_utf8_lossy(days),
-                category: category,
-                tiploc: String::from_utf8_lossy(tiploc),
-                tiploc_suffix: String::from_utf8_lossy(tiploc_suffix),
-                assoc_tiploc_suffix: String::from_utf8_lossy(assoc_tiploc_suffix),
-                atype: atype,
-                stp: stp,
+                _phantom: PhantomData,
             },
         ))
     }
@@ -482,18 +418,7 @@ mod test {
         assert_eq!(
             insert,
             Association {
-                transaction_type: TransactionType::New,
-                main_uid: "Y80987".into(),
-                assoc_uid: "Y80880".into(),
-                start_date: "160104".into(),
-                end_date: "160212".into(),
-                days: "1111100".into(),
-                category: AssociationCategory::Join,
-                tiploc: "PRST   ".into(),
-                tiploc_suffix: " ".into(),
-                assoc_tiploc_suffix: " ".into(),
-                atype: AssociationType::Passenger,
-                stp: AssociationSTP::Permanent,
+                _phantom: PhantomData,
             }
         )
     }
