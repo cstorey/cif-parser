@@ -28,7 +28,7 @@ fn main() -> Fallible<()> {
             match parse::<VerboseError<_>>(&i) {
                 Ok((rest, val)) => {
                     i = rest;
-                    info!("Ok: {:#?}", val)
+                    debug!("Ok: {:#?}", val)
                 }
 
                 Err(Err::Incomplete(need)) => {
@@ -48,6 +48,8 @@ fn main() -> Fallible<()> {
             }
         }
     }
+
+    info!("Done.");
 
     Ok(())
 }

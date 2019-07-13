@@ -2,9 +2,11 @@ use std::borrow::Cow;
 
 use nom::{bytes::streaming::*, character::is_space, error::*, IResult};
 
+use crate::tiploc::Tiploc;
+
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct TiplocInsert<'a> {
-    tiploc: Cow<'a, str>,
+    tiploc: Tiploc,
     nlc: Cow<'a, str>,
     nlc_check: Cow<'a, str>,
     tps_description: Cow<'a, str>,
@@ -17,7 +19,7 @@ pub(super) fn parse_tiploc_insert<'a, E: ParseError<&'a [u8]>>(
 ) -> impl Fn(&'a [u8]) -> IResult<&'a [u8], TiplocInsert, E> {
     |i: &'a [u8]| -> IResult<&'a [u8], TiplocInsert, E> {
         let (i, _) = tag("TI")(i)?;
-        let (i, tiploc) = take(7usize)(i)?;
+        let (i, tiploc) = Tiploc::parse(i)?;
         let (i, _) = take(2usize)(i)?; // `capitals`
         let (i, nlc) = take(6usize)(i)?;
         let (i, nlc_check) = take(1usize)(i)?;
@@ -31,7 +33,7 @@ pub(super) fn parse_tiploc_insert<'a, E: ParseError<&'a [u8]>>(
         Ok((
             i,
             TiplocInsert {
-                tiploc: String::from_utf8_lossy(tiploc),
+                tiploc: tiploc,
                 nlc: String::from_utf8_lossy(nlc),
                 nlc_check: String::from_utf8_lossy(nlc_check),
                 tps_description: String::from_utf8_lossy(tps_description),
