@@ -3,6 +3,7 @@ use crate::*;
 mod association;
 mod basic_schedule;
 mod header;
+mod location_intermediate;
 mod location_origin;
 mod schedule_extra;
 mod tiploc_amend;
@@ -11,6 +12,7 @@ mod tiploc_insert;
 pub use association::Association;
 pub use basic_schedule::BasicSchedule;
 pub use header::Header;
+pub use location_intermediate::LocationIntermediate;
 pub use location_origin::LocationOrigin;
 pub use schedule_extra::ScheduleExtra;
 pub use tiploc_amend::TiplocAmend;
@@ -65,7 +67,10 @@ pub fn parse<'a, E: ParseError<&'a [u8]>>(i: &'a [u8]) -> IResult<&'a [u8], reco
             location_origin::parse_location_origin(),
             Record::LocationOrigin,
         ),
-        map(parse_location_intermediate(), Record::LocationIntermediate),
+        map(
+            location_intermediate::parse_location_intermediate(),
+            Record::LocationIntermediate,
+        ),
         map(parse_location_terminating(), Record::LocationTerminating),
         map(parse_change_en_route(), Record::ChangeEnRoute),
         map(parse_trailer(), Record::Trailer),
