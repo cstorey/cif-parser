@@ -1,6 +1,9 @@
 use std::borrow::Cow;
 
-use nom::{bytes::streaming::*, character::is_space, error::*, IResult};
+use nom::{bytes::streaming::*, character::is_space, IResult};
+
+use crate::errors::CIFParseError;
+
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct ScheduleExtra<'a> {
     uic_code: Cow<'a, str>,
@@ -8,9 +11,9 @@ pub struct ScheduleExtra<'a> {
     applicable_timetable_code: Cow<'a, str>,
 }
 
-pub(super) fn parse_schedule_extra<'a, E: ParseError<&'a [u8]>>(
-) -> impl Fn(&'a [u8]) -> IResult<&'a [u8], ScheduleExtra, E> {
-    |i: &'a [u8]| -> IResult<&'a [u8], ScheduleExtra, E> {
+pub(super) fn parse_schedule_extra<'a>(
+) -> impl Fn(&'a [u8]) -> IResult<&'a [u8], ScheduleExtra, CIFParseError> {
+    |i: &'a [u8]| -> IResult<&'a [u8], ScheduleExtra, CIFParseError> {
         let (i, _) = tag("BX")(i)?;
         let (i, _traction_class) = take(4usize)(i)?;
         let (i, uic_code) = take(5usize)(i)?;
@@ -36,7 +39,7 @@ mod test {
     use super::*;
     #[test]
     fn should_parse_schedule_extra() {
-        let p = parse_schedule_extra::<VerboseError<_>>();
+        let p = parse_schedule_extra();
         let i = b"BX         SEY                                                                  ";
         assert_eq!(80, i.len());
         let (rest, val) = p(i).expect("parse");

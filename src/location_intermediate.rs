@@ -1,6 +1,8 @@
 use std::borrow::Cow;
 
-use nom::{bytes::streaming::*, character::is_space, error::*, IResult};
+use nom::{bytes::streaming::*, character::is_space, IResult};
+
+use crate::errors::CIFParseError;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct LocationIntermediate<'a> {
@@ -19,9 +21,9 @@ pub struct LocationIntermediate<'a> {
     perf_allowance: Cow<'a, str>,
 }
 
-pub(super) fn parse_location_intermediate<'a, E: ParseError<&'a [u8]>>(
-) -> impl Fn(&'a [u8]) -> IResult<&'a [u8], LocationIntermediate, E> {
-    |i: &'a [u8]| -> IResult<&'a [u8], LocationIntermediate, E> {
+pub(super) fn parse_location_intermediate<'a>(
+) -> impl Fn(&'a [u8]) -> IResult<&'a [u8], LocationIntermediate, CIFParseError> {
+    |i: &'a [u8]| -> IResult<&'a [u8], LocationIntermediate, CIFParseError> {
         let (i, _) = tag("LI")(i)?;
         let (i, tiploc) = take(8usize)(i)?;
         let (i, scheduled_arrival_time) = take(5usize)(i)?;
@@ -65,7 +67,7 @@ mod test {
 
     #[test]
     fn should_parse_location_intermediate() {
-        let p = parse_location_intermediate::<VerboseError<_>>();
+        let p = parse_location_intermediate();
         let i = b"LIWLOE    2327 2328      23272328C        T                                     ";
         assert_eq!(80, i.len());
         let (rest, val) = p(i).expect("parse");
