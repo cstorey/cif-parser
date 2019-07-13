@@ -1,5 +1,9 @@
 use crate::*;
 
+mod header;
+
+pub use header::Header;
+
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Record<'a> {
     Header(Header<'a>),
@@ -18,7 +22,7 @@ pub enum Record<'a> {
 pub fn parse<'a, E: ParseError<&'a [u8]>>(i: &'a [u8]) -> IResult<&'a [u8], records::Record, E> {
     use records::*;
     let p = alt((
-        map(parse_header(), Record::Header),
+        map(header::parse_header(), Record::Header),
         map(parse_tiploc_insert(), Record::TiplocInsert),
         map(parse_tiploc_amend(), Record::TiplocAmend),
         map(parse_association(), Record::Association),
