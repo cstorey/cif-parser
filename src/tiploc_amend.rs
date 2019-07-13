@@ -4,14 +4,14 @@ use nom::{bytes::streaming::*, character::is_space, error::*, IResult};
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct TiplocAmend<'a> {
-    tiploc: Cow<'a, str>,
-    nlc: Cow<'a, str>,
-    nlc_check: Cow<'a, str>,
-    tps_description: Cow<'a, str>,
-    stanox: Cow<'a, str>,
-    crs: Cow<'a, str>,
-    nlc_desc: Cow<'a, str>,
-    new_tiploc: Cow<'a, str>,
+    pub tiploc: Cow<'a, str>,
+    pub nlc: Cow<'a, str>,
+    pub nlc_check: Cow<'a, str>,
+    pub tps_description: Cow<'a, str>,
+    pub stanox: Cow<'a, str>,
+    pub crs: Cow<'a, str>,
+    pub nlc_desc: Cow<'a, str>,
+    pub new_tiploc: Cow<'a, str>,
 }
 
 pub(super) fn parse_tiploc_amend<'a, E: ParseError<&'a [u8]>>(

@@ -4,19 +4,19 @@ use nom::{bytes::streaming::*, character::is_space, error::*, IResult};
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct LocationIntermediate<'a> {
-    tiploc: Cow<'a, str>,
-    scheduled_arrival_time: Cow<'a, str>,
-    scheduled_departure_time: Cow<'a, str>,
-    scheduled_pass: Cow<'a, str>,
-    public_arrival: Cow<'a, str>,
-    public_departure: Cow<'a, str>,
-    platform: Cow<'a, str>,
-    line: Cow<'a, str>,
-    path: Cow<'a, str>,
-    activity: Cow<'a, str>,
-    eng_allowance: Cow<'a, str>,
-    path_allowance: Cow<'a, str>,
-    perf_allowance: Cow<'a, str>,
+    pub tiploc: Cow<'a, str>,
+    pub scheduled_arrival_time: Cow<'a, str>,
+    pub scheduled_departure_time: Cow<'a, str>,
+    pub scheduled_pass: Cow<'a, str>,
+    pub public_arrival: Cow<'a, str>,
+    pub public_departure: Cow<'a, str>,
+    pub platform: Cow<'a, str>,
+    pub line: Cow<'a, str>,
+    pub path: Cow<'a, str>,
+    pub activity: Cow<'a, str>,
+    pub eng_allowance: Cow<'a, str>,
+    pub path_allowance: Cow<'a, str>,
+    pub perf_allowance: Cow<'a, str>,
 }
 
 pub(super) fn parse_location_intermediate<'a, E: ParseError<&'a [u8]>>(

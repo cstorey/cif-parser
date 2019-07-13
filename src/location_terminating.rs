@@ -4,12 +4,12 @@ use nom::{bytes::streaming::*, character::is_space, error::*, IResult};
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct LocationTerminating<'a> {
-    tiploc: Cow<'a, str>,
-    scheduled_arrival_time: Cow<'a, str>,
-    public_arrival: Cow<'a, str>,
-    platform: Cow<'a, str>,
-    path: Cow<'a, str>,
-    activity: Cow<'a, str>,
+    pub tiploc: Cow<'a, str>,
+    pub scheduled_arrival_time: Cow<'a, str>,
+    pub public_arrival: Cow<'a, str>,
+    pub platform: Cow<'a, str>,
+    pub path: Cow<'a, str>,
+    pub activity: Cow<'a, str>,
 }
 
 pub(super) fn parse_location_terminating<'a, E: ParseError<&'a [u8]>>(

@@ -9,25 +9,24 @@ use super::{TransactionType, STP};
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct BasicSchedule<'a> {
-    transaction_type: TransactionType,
-    uid: Cow<'a, str>,
-    start_date: Cow<'a, str>,
-    end_date: Cow<'a, str>,
-    days: Cow<'a, str>,
-    bank_holiday: Cow<'a, str>,
-    status: Cow<'a, str>,
-    category: Cow<'a, str>,
-    identity: Cow<'a, str>,
-    headcode: Cow<'a, str>,
-
-    service_code: Cow<'a, str>,
-    speed: Cow<'a, str>,
-    seating_class: Cow<'a, str>,
-    sleepers: Cow<'a, str>,
-    reservations: Cow<'a, str>,
-    catering: Cow<'a, str>,
-    branding: Cow<'a, str>,
-    stp: STP,
+    pub transaction_type: TransactionType,
+    pub uid: Cow<'a, str>,
+    pub start_date: Cow<'a, str>,
+    pub end_date: Cow<'a, str>,
+    pub days: Cow<'a, str>,
+    pub bank_holiday: Cow<'a, str>,
+    pub status: Cow<'a, str>,
+    pub category: Cow<'a, str>,
+    pub identity: Cow<'a, str>,
+    pub headcode: Cow<'a, str>,
+    pub service_code: Cow<'a, str>,
+    pub speed: Cow<'a, str>,
+    pub seating_class: Cow<'a, str>,
+    pub sleepers: Cow<'a, str>,
+    pub reservations: Cow<'a, str>,
+    pub catering: Cow<'a, str>,
+    pub branding: Cow<'a, str>,
+    pub stp: STP,
 }
 
 pub(super) fn parse_basic_schedule<'a, E: ParseError<&'a [u8]>>(

@@ -13,15 +13,15 @@ pub enum FullOrUpdate {
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Header<'a> {
-    file_mainframe_identity: Cow<'a, str>,
-    extract_date: Cow<'a, str>,
-    extract_time: Cow<'a, str>,
-    current_file: Cow<'a, str>,
-    last_file: Cow<'a, str>,
-    update_indicator: FullOrUpdate,
-    version: Cow<'a, str>,
-    user_start_date: Cow<'a, str>,
-    user_end_date: Cow<'a, str>,
+    pub file_mainframe_identity: Cow<'a, str>,
+    pub extract_date: Cow<'a, str>,
+    pub extract_time: Cow<'a, str>,
+    pub current_file: Cow<'a, str>,
+    pub last_file: Cow<'a, str>,
+    pub update_indicator: FullOrUpdate,
+    pub version: Cow<'a, str>,
+    pub user_start_date: Cow<'a, str>,
+    pub user_end_date: Cow<'a, str>,
 }
 
 pub(super) fn parse_header<'a, E: ParseError<&'a [u8]>>(

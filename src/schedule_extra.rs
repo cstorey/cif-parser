@@ -3,9 +3,9 @@ use std::borrow::Cow;
 use nom::{bytes::streaming::*, character::is_space, error::*, IResult};
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct ScheduleExtra<'a> {
-    uic_code: Cow<'a, str>,
-    atoc_code: Cow<'a, str>,
-    applicable_timetable_code: Cow<'a, str>,
+    pub uic_code: Cow<'a, str>,
+    pub atoc_code: Cow<'a, str>,
+    pub applicable_timetable_code: Cow<'a, str>,
 }
 
 pub(super) fn parse_schedule_extra<'a, E: ParseError<&'a [u8]>>(
