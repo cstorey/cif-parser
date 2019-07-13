@@ -5,6 +5,7 @@ mod basic_schedule;
 mod header;
 mod location_intermediate;
 mod location_origin;
+mod location_terminating;
 mod schedule_extra;
 mod tiploc_amend;
 mod tiploc_insert;
@@ -14,6 +15,7 @@ pub use basic_schedule::BasicSchedule;
 pub use header::Header;
 pub use location_intermediate::LocationIntermediate;
 pub use location_origin::LocationOrigin;
+pub use location_terminating::LocationTerminating;
 pub use schedule_extra::ScheduleExtra;
 pub use tiploc_amend::TiplocAmend;
 pub use tiploc_insert::TiplocInsert;
@@ -71,7 +73,10 @@ pub fn parse<'a, E: ParseError<&'a [u8]>>(i: &'a [u8]) -> IResult<&'a [u8], reco
             location_intermediate::parse_location_intermediate(),
             Record::LocationIntermediate,
         ),
-        map(parse_location_terminating(), Record::LocationTerminating),
+        map(
+            location_terminating::parse_location_terminating(),
+            Record::LocationTerminating,
+        ),
         map(parse_change_en_route(), Record::ChangeEnRoute),
         map(parse_trailer(), Record::Trailer),
     ));
