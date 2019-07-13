@@ -583,7 +583,7 @@ fn main() -> Fallible<()> {
         let fp = File::open(f)?;
         let mmap = unsafe { Mmap::map(&fp)? };
         let mut i: &[u8] = &mmap;
-        loop {
+        while i.len() > 0 {
             match parse::<VerboseError<_>>(&i) {
                 Ok((rest, val)) => {
                     i = rest;
