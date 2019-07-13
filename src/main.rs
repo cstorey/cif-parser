@@ -1,9 +1,11 @@
+use env_logger;
+use log::*;
 use std::borrow::Cow;
 use std::fs::File;
 use std::marker::PhantomData;
 use std::path::PathBuf;
 
-use failure::Fallible;
+use failure::*;
 use memmap::Mmap;
 use nom::{
     branch::alt,
@@ -304,6 +306,7 @@ fn parse_basic_schedule<'a, E: ParseError<&'a [u8]>>(
 }
 
 fn main() -> Fallible<()> {
+    env_logger::init();
     let opts = Opts::from_args();
 
     for f in opts.files {
@@ -314,22 +317,22 @@ fn main() -> Fallible<()> {
             match parse::<VerboseError<_>>(&i) {
                 Ok((rest, val)) => {
                     i = rest;
-                    println!("Ok: {:#?}", val)
+                    info!("Ok: {:#?}", val)
                 }
 
                 Err(Err::Incomplete(need)) => {
-                    eprintln!("Needed: {:?}", need);
-                    break;
+                    error!("Needed: {:?}", need);
+                    return Result::Err(failure::err_msg("Not enough data"));
                 }
                 Err(Err::Error(err)) => {
-                    eprintln!("Error:");
+                    error!("Error:");
                     show_error(err);
-                    break;
+                    return Result::Err(failure::err_msg("Parser error"));
                 }
                 Err(Err::Failure(err)) => {
-                    eprintln!("Failure:");
+                    error!("Failure:");
                     show_error(err);
-                    break;
+                    return Result::Err(failure::err_msg("Parser failure"));
                 }
             }
         }
@@ -341,7 +344,7 @@ fn main() -> Fallible<()> {
 fn show_error(err: VerboseError<&[u8]>) {
     const SNIPPET_LEN: usize = 240;
     for (i, kind) in err.errors {
-        eprintln!(
+        error!(
             "Err: {:?}: {:?}{}",
             kind,
             String::from_utf8_lossy(&i[..SNIPPET_LEN]),
