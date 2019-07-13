@@ -20,9 +20,10 @@ fn main() -> Fallible<()> {
     let opts = Opts::from_args();
 
     for f in opts.files {
-        let fp = File::open(f)?;
+        let fp = File::open(&f)?;
         let mmap = unsafe { Mmap::map(&fp)? };
         let mut i: &[u8] = &mmap;
+        info!("Parsing file: {:?}", f);
         while i.len() > 0 {
             match parse::<VerboseError<_>>(&i) {
                 Ok((rest, val)) => {
