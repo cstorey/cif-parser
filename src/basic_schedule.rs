@@ -2,11 +2,10 @@ use std::borrow::Cow;
 
 use nom::{
     branch::alt, bytes::streaming::*, character::is_space, character::streaming::*,
-    combinator::map, IResult,
+    combinator::map, error::*, IResult,
 };
 
-use crate::errors::CIFParseError;
-use crate::{TransactionType, STP};
+use super::{TransactionType, STP};
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct BasicSchedule<'a> {
@@ -31,9 +30,9 @@ pub struct BasicSchedule<'a> {
     stp: STP,
 }
 
-pub(super) fn parse_basic_schedule<'a>(
-) -> impl Fn(&'a [u8]) -> IResult<&'a [u8], BasicSchedule, CIFParseError> {
-    |i: &'a [u8]| -> IResult<&'a [u8], BasicSchedule, CIFParseError> {
+pub(super) fn parse_basic_schedule<'a, E: ParseError<&'a [u8]>>(
+) -> impl Fn(&'a [u8]) -> IResult<&'a [u8], BasicSchedule, E> {
+    |i: &'a [u8]| -> IResult<&'a [u8], BasicSchedule, E> {
         let (i, _) = tag("BS")(i)?;
         let (i, ttype) = alt((
             map(char('N'), |_| TransactionType::New),
@@ -102,7 +101,7 @@ mod test {
 
     #[test]
     fn should_parse_basic_schedule() {
-        let p = parse_basic_schedule();
+        let p = parse_basic_schedule::<VerboseError<_>>();
         let i = b"BSRG828851510191510231100100 POO2N75    113575825 DMUE   090      S            O";
         assert_eq!(80, i.len());
         let (rest, val) = p(i).expect("parse");

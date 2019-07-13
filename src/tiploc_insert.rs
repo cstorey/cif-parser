@@ -1,8 +1,6 @@
 use std::borrow::Cow;
 
-use nom::{bytes::streaming::*, character::is_space, IResult};
-
-use crate::errors::CIFParseError;
+use nom::{bytes::streaming::*, character::is_space, error::*, IResult};
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct TiplocInsert<'a> {
@@ -15,9 +13,9 @@ pub struct TiplocInsert<'a> {
     nlc_desc: Cow<'a, str>,
 }
 
-pub(super) fn parse_tiploc_insert<'a>(
-) -> impl Fn(&'a [u8]) -> IResult<&'a [u8], TiplocInsert, CIFParseError> {
-    |i: &'a [u8]| -> IResult<&'a [u8], TiplocInsert, CIFParseError> {
+pub(super) fn parse_tiploc_insert<'a, E: ParseError<&'a [u8]>>(
+) -> impl Fn(&'a [u8]) -> IResult<&'a [u8], TiplocInsert, E> {
+    |i: &'a [u8]| -> IResult<&'a [u8], TiplocInsert, E> {
         let (i, _) = tag("TI")(i)?;
         let (i, tiploc) = take(7usize)(i)?;
         let (i, _) = take(2usize)(i)?; // `capitals`
@@ -51,7 +49,7 @@ mod test {
 
     #[test]
     fn should_parse_tiploc_insert() {
-        let p = parse_tiploc_insert();
+        let p = parse_tiploc_insert::<VerboseError<_>>();
         let hdr =
             b"TIBLTNODR24853600DBOLTON-UPON-DEARNE        24011   0BTDBOLTON ON DEARNE        ";
         assert_eq!(80, hdr.len());

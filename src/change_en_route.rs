@@ -1,8 +1,6 @@
 use std::borrow::Cow;
 
-use nom::{bytes::streaming::*, character::is_space, IResult};
-
-use crate::errors::CIFParseError;
+use nom::{bytes::streaming::*, character::is_space, error::*, IResult};
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct ChangeEnRoute<'a> {
@@ -27,9 +25,9 @@ pub struct ChangeEnRoute<'a> {
     retail_id: Cow<'a, str>,
 }
 
-pub(super) fn parse_change_en_route<'a>(
-) -> impl Fn(&'a [u8]) -> IResult<&'a [u8], ChangeEnRoute, CIFParseError> {
-    |i: &'a [u8]| -> IResult<&'a [u8], ChangeEnRoute, CIFParseError> {
+pub(super) fn parse_change_en_route<'a, E: ParseError<&'a [u8]>>(
+) -> impl Fn(&'a [u8]) -> IResult<&'a [u8], ChangeEnRoute, E> {
+    |i: &'a [u8]| -> IResult<&'a [u8], ChangeEnRoute, E> {
         let (i, _) = tag("CR")(i)?;
         let (i, tiploc) = take(8usize)(i)?;
         let (i, train_category) = take(2usize)(i)?;
@@ -86,7 +84,7 @@ mod test {
 
     #[test]
     fn should_parse_change_en_route() {
-        let p = parse_change_en_route();
+        let p = parse_change_en_route::<VerboseError<_>>();
         let i = b"CRCTRDJN  DT3Q27    152495112 D      030                                        ";
         assert_eq!(80, i.len());
         let (rest, val) = p(i).expect("parse");

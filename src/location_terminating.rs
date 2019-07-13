@@ -1,8 +1,6 @@
 use std::borrow::Cow;
 
-use nom::{bytes::streaming::*, character::is_space, IResult};
-
-use crate::errors::CIFParseError;
+use nom::{bytes::streaming::*, character::is_space, error::*, IResult};
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct LocationTerminating<'a> {
@@ -14,9 +12,9 @@ pub struct LocationTerminating<'a> {
     activity: Cow<'a, str>,
 }
 
-pub(super) fn parse_location_terminating<'a>(
-) -> impl Fn(&'a [u8]) -> IResult<&'a [u8], LocationTerminating, CIFParseError> {
-    |i: &'a [u8]| -> IResult<&'a [u8], LocationTerminating, CIFParseError> {
+pub(super) fn parse_location_terminating<'a, E: ParseError<&'a [u8]>>(
+) -> impl Fn(&'a [u8]) -> IResult<&'a [u8], LocationTerminating, E> {
+    |i: &'a [u8]| -> IResult<&'a [u8], LocationTerminating, E> {
         let (i, _) = tag("LT")(i)?;
         let (i, tiploc) = take(8usize)(i)?;
         let (i, scheduled_arrival_time) = take(5usize)(i)?;
@@ -46,7 +44,7 @@ mod test {
 
     #[test]
     fn should_parse_location_terminating() {
-        let p = parse_location_terminating();
+        let p = parse_location_terminating::<VerboseError<_>>();
         let i = b"LTTUNWELL 0125 01271     TF                                                     ";
         assert_eq!(80, i.len());
         let (rest, val) = p(i).expect("parse");

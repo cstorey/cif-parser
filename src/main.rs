@@ -5,6 +5,7 @@ use std::path::PathBuf;
 
 use failure::*;
 use memmap::Mmap;
+use nom::{error::VerboseError, Err};
 use structopt::StructOpt;
 
 use cif_parser::parse;
@@ -24,20 +25,42 @@ fn main() -> Fallible<()> {
         let mut i: &[u8] = &mmap;
         info!("Parsing file: {:?}", f);
         while i.len() > 0 {
-            match parse(&i) {
+            match parse::<VerboseError<_>>(&i) {
                 Ok((rest, val)) => {
                     i = rest;
                     info!("Ok: {:#?}", val)
                 }
-                Err(nom::Err::Error(e)) | Err(nom::Err::Failure(e)) => {
-                    bail!(e);
+
+                Err(Err::Incomplete(need)) => {
+                    error!("Needed: {:?}", need);
+                    return Result::Err(failure::err_msg("Not enough data"));
                 }
-                Err(nom::Err::Incomplete(e)) => {
-                    bail!("Incomplete read: {:?}", e);
+                Err(Err::Error(err)) => {
+                    error!("Error:");
+                    show_error(err);
+                    return Result::Err(failure::err_msg("Parser error"));
+                }
+                Err(Err::Failure(err)) => {
+                    error!("Failure:");
+                    show_error(err);
+                    return Result::Err(failure::err_msg("Parser failure"));
                 }
             }
         }
     }
 
     Ok(())
+}
+
+fn show_error(err: VerboseError<&[u8]>) {
+    const SNIPPET_LEN: usize = 240;
+    for (i, kind) in err.errors {
+        let len = std::cmp::min(i.len(), SNIPPET_LEN);
+        error!(
+            "Err: {:?}: {:?}{}",
+            kind,
+            String::from_utf8_lossy(&i[..len]),
+            if i.len() < SNIPPET_LEN { "" } else { "…" }
+        );
+    }
 }

@@ -1,8 +1,6 @@
 use std::borrow::Cow;
 
-use nom::{bytes::streaming::*, character::is_space, IResult};
-
-use crate::errors::CIFParseError;
+use nom::{bytes::streaming::*, character::is_space, error::*, IResult};
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct LocationOrigin<'a> {
@@ -17,9 +15,9 @@ pub struct LocationOrigin<'a> {
     perf_allowance: Cow<'a, str>,
 }
 
-pub(super) fn parse_location_origin<'a>(
-) -> impl Fn(&'a [u8]) -> IResult<&'a [u8], LocationOrigin, CIFParseError> {
-    |i: &'a [u8]| -> IResult<&'a [u8], LocationOrigin, CIFParseError> {
+pub(super) fn parse_location_origin<'a, E: ParseError<&'a [u8]>>(
+) -> impl Fn(&'a [u8]) -> IResult<&'a [u8], LocationOrigin, E> {
+    |i: &'a [u8]| -> IResult<&'a [u8], LocationOrigin, E> {
         let (i, _) = tag("LO")(i)?; // 1-2
         let (i, tiploc) = take(8usize)(i)?; // 3-10
         let (i, scheduled_departure_time) = take(5usize)(i)?; // 11-15
@@ -55,7 +53,7 @@ mod test {
 
     #[test]
     fn should_parse_location_origin() {
-        let p = parse_location_origin();
+        let p = parse_location_origin::<VerboseError<_>>();
         let i = b"LOCHRX    0015 00156  FL     TB                                                 ";
         assert_eq!(80, i.len());
         let (rest, val) = p(i).expect("parse");

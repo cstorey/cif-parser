@@ -1,8 +1,6 @@
 use std::borrow::Cow;
 
-use nom::{bytes::streaming::*, character::is_space, IResult};
-
-use crate::errors::CIFParseError;
+use nom::{bytes::streaming::*, character::is_space, error::*, IResult};
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct TiplocAmend<'a> {
@@ -16,9 +14,9 @@ pub struct TiplocAmend<'a> {
     new_tiploc: Cow<'a, str>,
 }
 
-pub(super) fn parse_tiploc_amend<'a>(
-) -> impl Fn(&'a [u8]) -> IResult<&'a [u8], TiplocAmend, CIFParseError> {
-    |i: &'a [u8]| -> IResult<&'a [u8], TiplocAmend, CIFParseError> {
+pub(super) fn parse_tiploc_amend<'a, E: ParseError<&'a [u8]>>(
+) -> impl Fn(&'a [u8]) -> IResult<&'a [u8], TiplocAmend, E> {
+    |i: &'a [u8]| -> IResult<&'a [u8], TiplocAmend, E> {
         let (i, _) = tag("TA")(i)?;
         let (i, tiploc) = take(7usize)(i)?;
         let (i, _) = take(2usize)(i)?; // `capitals`
@@ -55,7 +53,7 @@ mod test {
 
     #[test]
     fn should_parse_tiploc_amend() {
-        let p = complete(parse_tiploc_amend());
+        let p = complete(parse_tiploc_amend::<VerboseError<_>>());
         let hdr =
             b"TAMBRK94200590970AMILLBROOK SIG E942        86536   0                           ";
         assert_eq!(80, hdr.len());
