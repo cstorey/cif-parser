@@ -1,8 +1,10 @@
 use crate::*;
 
 mod header;
+mod tiploc_insert;
 
 pub use header::Header;
+pub use tiploc_insert::TiplocInsert;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Record<'a> {
@@ -23,7 +25,7 @@ pub fn parse<'a, E: ParseError<&'a [u8]>>(i: &'a [u8]) -> IResult<&'a [u8], reco
     use records::*;
     let p = alt((
         map(header::parse_header(), Record::Header),
-        map(parse_tiploc_insert(), Record::TiplocInsert),
+        map(tiploc_insert::parse_tiploc_insert(), Record::TiplocInsert),
         map(parse_tiploc_amend(), Record::TiplocAmend),
         map(parse_association(), Record::Association),
         map(parse_basic_schedule(), Record::BasicSchedule),
