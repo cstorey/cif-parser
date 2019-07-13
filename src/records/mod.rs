@@ -1,4 +1,6 @@
-use crate::*;
+use nom::{
+    branch::alt, character::streaming::*, combinator::map, error::*, sequence::terminated, IResult,
+};
 
 mod association;
 mod basic_schedule;
@@ -10,6 +12,7 @@ mod location_terminating;
 mod schedule_extra;
 mod tiploc_amend;
 mod tiploc_insert;
+mod trailer;
 
 pub use association::Association;
 pub use basic_schedule::BasicSchedule;
@@ -21,6 +24,7 @@ pub use location_terminating::LocationTerminating;
 pub use schedule_extra::ScheduleExtra;
 pub use tiploc_amend::TiplocAmend;
 pub use tiploc_insert::TiplocInsert;
+pub use trailer::Trailer;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Record<'a> {
@@ -52,8 +56,7 @@ pub enum STP {
     Permanent,
 }
 
-pub fn parse<'a, E: ParseError<&'a [u8]>>(i: &'a [u8]) -> IResult<&'a [u8], records::Record, E> {
-    use records::*;
+pub fn parse<'a, E: ParseError<&'a [u8]>>(i: &'a [u8]) -> IResult<&'a [u8], Record, E> {
     let p = alt((
         map(header::parse_header(), Record::Header),
         map(tiploc_insert::parse_tiploc_insert(), Record::TiplocInsert),
@@ -83,7 +86,7 @@ pub fn parse<'a, E: ParseError<&'a [u8]>>(i: &'a [u8]) -> IResult<&'a [u8], reco
             change_en_route::parse_change_en_route(),
             Record::ChangeEnRoute,
         ),
-        map(parse_trailer(), Record::Trailer),
+        map(trailer::parse_trailer(), Record::Trailer),
     ));
     terminated(p, char('\n'))(i)
 }
