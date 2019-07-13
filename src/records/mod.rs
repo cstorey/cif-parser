@@ -1,9 +1,11 @@
 use crate::*;
 
 mod header;
+mod tiploc_amend;
 mod tiploc_insert;
 
 pub use header::Header;
+pub use tiploc_amend::TiplocAmend;
 pub use tiploc_insert::TiplocInsert;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -26,7 +28,7 @@ pub fn parse<'a, E: ParseError<&'a [u8]>>(i: &'a [u8]) -> IResult<&'a [u8], reco
     let p = alt((
         map(header::parse_header(), Record::Header),
         map(tiploc_insert::parse_tiploc_insert(), Record::TiplocInsert),
-        map(parse_tiploc_amend(), Record::TiplocAmend),
+        map(tiploc_amend::parse_tiploc_amend(), Record::TiplocAmend),
         map(parse_association(), Record::Association),
         map(parse_basic_schedule(), Record::BasicSchedule),
         map(parse_schedule_extra(), Record::ScheduleExtra),
