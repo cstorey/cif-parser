@@ -9,6 +9,7 @@ mod header;
 mod location_intermediate;
 mod location_origin;
 mod location_terminating;
+mod schedule;
 mod schedule_extra;
 mod tiploc;
 mod tiploc_amend;
@@ -22,6 +23,7 @@ pub use header::Header;
 pub use location_intermediate::LocationIntermediate;
 pub use location_origin::LocationOrigin;
 pub use location_terminating::LocationTerminating;
+pub use schedule::Schedule;
 pub use schedule_extra::ScheduleExtra;
 pub use tiploc::Tiploc;
 pub use tiploc_amend::TiplocAmend;
@@ -34,11 +36,7 @@ pub enum Record<'a> {
     TiplocInsert(TiplocInsert<'a>),
     TiplocAmend(TiplocAmend<'a>),
     Association(Association<'a>),
-    BasicSchedule(BasicSchedule<'a>),
-    ScheduleExtra(ScheduleExtra<'a>),
-    LocationOrigin(LocationOrigin<'a>),
-    LocationIntermediate(LocationIntermediate<'a>),
-    LocationTerminating(LocationTerminating<'a>),
+    Schedule(Schedule<'a>),
     ChangeEnRoute(ChangeEnRoute<'a>),
     Trailer(Trailer),
 }
@@ -58,36 +56,15 @@ pub enum STP {
     Permanent,
 }
 
-pub fn parse<'a, E: ParseError<&'a [u8]>>(i: &'a [u8]) -> IResult<&'a [u8], Record, E> {
+pub fn parse<'a, E: ParseError<&'a [u8]> + std::fmt::Debug>(
+    i: &'a [u8],
+) -> IResult<&'a [u8], Record, E> {
     let p = alt((
         map(header::parse_header(), Record::Header),
         map(tiploc_insert::parse_tiploc_insert(), Record::TiplocInsert),
         map(tiploc_amend::parse_tiploc_amend(), Record::TiplocAmend),
         map(association::parse_association(), Record::Association),
-        map(
-            basic_schedule::parse_basic_schedule(),
-            Record::BasicSchedule,
-        ),
-        map(
-            schedule_extra::parse_schedule_extra(),
-            Record::ScheduleExtra,
-        ),
-        map(
-            location_origin::parse_location_origin(),
-            Record::LocationOrigin,
-        ),
-        map(
-            location_intermediate::parse_location_intermediate(),
-            Record::LocationIntermediate,
-        ),
-        map(
-            location_terminating::parse_location_terminating(),
-            Record::LocationTerminating,
-        ),
-        map(
-            change_en_route::parse_change_en_route(),
-            Record::ChangeEnRoute,
-        ),
+        map(schedule::parse_schedule(), Record::Schedule),
         map(trailer::parse_trailer(), Record::Trailer),
     ));
     terminated(p, char('\n'))(i)
