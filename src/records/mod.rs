@@ -1,9 +1,11 @@
 use crate::*;
 
+mod association;
 mod header;
 mod tiploc_amend;
 mod tiploc_insert;
 
+pub use association::Association;
 pub use header::Header;
 pub use tiploc_amend::TiplocAmend;
 pub use tiploc_insert::TiplocInsert;
@@ -23,13 +25,28 @@ pub enum Record<'a> {
     Trailer(Trailer),
 }
 
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub enum TransactionType {
+    New,
+    Delete,
+    Revise,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub enum STP {
+    Cancellation,
+    New,
+    Overlay,
+    Permanent,
+}
+
 pub fn parse<'a, E: ParseError<&'a [u8]>>(i: &'a [u8]) -> IResult<&'a [u8], records::Record, E> {
     use records::*;
     let p = alt((
         map(header::parse_header(), Record::Header),
         map(tiploc_insert::parse_tiploc_insert(), Record::TiplocInsert),
         map(tiploc_amend::parse_tiploc_amend(), Record::TiplocAmend),
-        map(parse_association(), Record::Association),
+        map(association::parse_association(), Record::Association),
         map(parse_basic_schedule(), Record::BasicSchedule),
         map(parse_schedule_extra(), Record::ScheduleExtra),
         map(parse_location_origin(), Record::LocationOrigin),

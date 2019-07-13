@@ -1,5 +1,4 @@
 use std::borrow::Cow;
-use std::marker::PhantomData;
 
 use nom::{
     branch::alt, bytes::streaming::*, character::is_space, character::streaming::*,
@@ -11,27 +10,8 @@ pub mod records;
 pub use records::parse;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
-enum TransactionType {
-    New,
-    Delete,
-    Revise,
-}
-
-#[derive(Debug, Clone, Eq, PartialEq)]
-enum AssociationSTP {
-    Cancellation,
-    New,
-    Overlay,
-    Permanent,
-}
-#[derive(Debug, Clone, Eq, PartialEq)]
-pub struct Association<'a> {
-    _phantom: PhantomData<&'a [u8]>,
-}
-
-#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct BasicSchedule<'a> {
-    transaction_type: TransactionType,
+    transaction_type: records::TransactionType,
     uid: Cow<'a, str>,
     start_date: Cow<'a, str>,
     end_date: Cow<'a, str>,
@@ -49,7 +29,7 @@ pub struct BasicSchedule<'a> {
     reservations: Cow<'a, str>,
     catering: Cow<'a, str>,
     branding: Cow<'a, str>,
-    stp: AssociationSTP,
+    stp: records::STP,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -125,29 +105,14 @@ pub struct ChangeEnRoute<'a> {
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Trailer;
 
-fn parse_association<'a, E: ParseError<&'a [u8]>>(
-) -> impl Fn(&'a [u8]) -> IResult<&'a [u8], Association, E> {
-    |i: &'a [u8]| -> IResult<&'a [u8], Association, E> {
-        let (i, _) = tag("AA")(i)?;
-        let (i, _spare) = take(78usize)(i)?;
-
-        Ok((
-            i,
-            Association {
-                _phantom: PhantomData,
-            },
-        ))
-    }
-}
-
 fn parse_basic_schedule<'a, E: ParseError<&'a [u8]>>(
 ) -> impl Fn(&'a [u8]) -> IResult<&'a [u8], BasicSchedule, E> {
     |i: &'a [u8]| -> IResult<&'a [u8], BasicSchedule, E> {
         let (i, _) = tag("BS")(i)?;
         let (i, ttype) = alt((
-            map(char('N'), |_| TransactionType::New),
-            map(char('D'), |_| TransactionType::Delete),
-            map(char('R'), |_| TransactionType::Revise),
+            map(char('N'), |_| records::TransactionType::New),
+            map(char('D'), |_| records::TransactionType::Delete),
+            map(char('R'), |_| records::TransactionType::Revise),
         ))(i)?;
         let (i, uid) = take(6usize)(i)?;
         let (i, start_date) = take(6usize)(i)?;
@@ -173,10 +138,10 @@ fn parse_basic_schedule<'a, E: ParseError<&'a [u8]>>(
         let (i, branding) = take(4usize)(i)?;
         let (i, _spare) = take_while_m_n(1, 1, is_space)(i)?;
         let (i, stp) = alt((
-            map(char('C'), |_| AssociationSTP::Cancellation),
-            map(char('N'), |_| AssociationSTP::New),
-            map(char('O'), |_| AssociationSTP::Overlay),
-            map(char('P'), |_| AssociationSTP::Permanent),
+            map(char('C'), |_| records::STP::Cancellation),
+            map(char('N'), |_| records::STP::New),
+            map(char('O'), |_| records::STP::Overlay),
+            map(char('P'), |_| records::STP::Permanent),
         ))(i)?;
 
         Ok((
@@ -395,21 +360,6 @@ mod test {
     use nom::combinator::complete;
 
     #[test]
-    fn should_parse_association() {
-        let p = complete(parse_association::<VerboseError<_>>());
-        let hdr =
-            b"AANY80987Y808801601041602121111100JJSPRST     TP                               P";
-        assert_eq!(80, hdr.len());
-        let (rest, insert) = p(hdr).expect("parse_header");
-        assert_eq!(String::from_utf8_lossy(rest), "");
-        assert_eq!(
-            insert,
-            Association {
-                _phantom: PhantomData,
-            }
-        )
-    }
-    #[test]
     fn should_parse_basic_schedule() {
         let p = complete(parse_basic_schedule::<VerboseError<_>>());
         let i = b"BSRG828851510191510231100100 POO2N75    113575825 DMUE   090      S            O";
@@ -419,7 +369,7 @@ mod test {
         assert_eq!(
             val,
             BasicSchedule {
-                transaction_type: TransactionType::Revise,
+                transaction_type: records::TransactionType::Revise,
                 uid: "G82885".into(),
                 start_date: "151019".into(),
                 end_date: "151023".into(),
@@ -436,7 +386,7 @@ mod test {
                 reservations: " ".into(),
                 catering: "    ".into(),
                 branding: "    ".into(),
-                stp: AssociationSTP::Overlay,
+                stp: records::STP::Overlay,
             }
         )
     }
