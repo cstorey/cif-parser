@@ -10,13 +10,6 @@ pub mod records;
 pub use records::parse;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub struct ScheduleExtra<'a> {
-    uic_code: Cow<'a, str>,
-    atoc_code: Cow<'a, str>,
-    applicable_timetable_code: Cow<'a, str>,
-}
-
-#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct LocationOrigin<'a> {
     tiploc: Cow<'a, str>,
     scheduled_departure_time: Cow<'a, str>,
@@ -81,29 +74,6 @@ pub struct ChangeEnRoute<'a> {
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Trailer;
-
-fn parse_schedule_extra<'a, E: ParseError<&'a [u8]>>(
-) -> impl Fn(&'a [u8]) -> IResult<&'a [u8], ScheduleExtra, E> {
-    |i: &'a [u8]| -> IResult<&'a [u8], ScheduleExtra, E> {
-        let (i, _) = tag("BX")(i)?;
-        let (i, _traction_class) = take(4usize)(i)?;
-        let (i, uic_code) = take(5usize)(i)?;
-        let (i, atoc_code) = take(2usize)(i)?;
-        let (i, applicable_timetable_code) = take(1usize)(i)?;
-        let (i, _reserved) = take(8usize)(i)?;
-        let (i, _reserved) = take(1usize)(i)?;
-        let (i, _spare) = take_while_m_n(57, 57, is_space)(i)?;
-
-        Ok((
-            i,
-            ScheduleExtra {
-                uic_code: String::from_utf8_lossy(uic_code),
-                atoc_code: String::from_utf8_lossy(atoc_code),
-                applicable_timetable_code: String::from_utf8_lossy(applicable_timetable_code),
-            },
-        ))
-    }
-}
 
 fn parse_location_origin<'a, E: ParseError<&'a [u8]>>(
 ) -> impl Fn(&'a [u8]) -> IResult<&'a [u8], LocationOrigin, E> {
@@ -269,24 +239,7 @@ fn parse_trailer<'a, E: ParseError<&'a [u8]>>() -> impl Fn(&'a [u8]) -> IResult<
 #[cfg(test)]
 mod test {
     use super::*;
-    use nom::combinator::complete;
 
-    #[test]
-    fn should_parse_schedule_extra() {
-        let p = complete(parse_schedule_extra::<VerboseError<_>>());
-        let i = b"BX         SEY                                                                  ";
-        assert_eq!(80, i.len());
-        let (rest, val) = p(i).expect("parse");
-        assert_eq!(String::from_utf8_lossy(rest), "");
-        assert_eq!(
-            val,
-            ScheduleExtra {
-                uic_code: "     ".into(),
-                atoc_code: "SE".into(),
-                applicable_timetable_code: "Y".into(),
-            }
-        )
-    }
     #[test]
     fn should_parse_location_origin() {
         let p = parse_location_origin::<VerboseError<_>>();
