@@ -1,5 +1,6 @@
-use nom::{combinator::opt, error::*, multi::fold_many0, sequence::preceded, IResult};
+use nom::{combinator::opt, multi::fold_many0, sequence::preceded, IResult};
 
+use crate::errors::CIFParseError;
 use crate::*;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -12,9 +13,9 @@ pub struct Schedule<'a> {
     terminal: Option<LocationTerminating<'a>>,
 }
 
-pub(super) fn parse_schedule<'a, E: ParseError<&'a [u8]> + std::fmt::Debug>(
-) -> impl Fn(&'a [u8]) -> IResult<&'a [u8], Schedule, E> {
-    |i: &'a [u8]| -> IResult<&'a [u8], Schedule, E> {
+pub(super) fn parse_schedule<'a>() -> impl Fn(&'a [u8]) -> IResult<&'a [u8], Schedule, CIFParseError>
+{
+    |i: &'a [u8]| -> IResult<&'a [u8], Schedule, CIFParseError> {
         enum Intermediate<'a> {
             Location(LocationIntermediate<'a>),
             Change(ChangeEnRoute<'a>),
@@ -68,6 +69,9 @@ pub(super) fn parse_schedule<'a, E: ParseError<&'a [u8]> + std::fmt::Debug>(
 
 #[cfg(test)]
 mod test {
+    use chrono::offset::TimeZone;
+    use chrono_tz::Europe::London;
+
     use super::*;
 
     #[test]
@@ -79,7 +83,7 @@ LOBROMLYN 0004 00041         TB                                                 
 LISNDP    0005H0006      00060006         T                                     \n\
 LTGRVPK   0009 00091     TF                                                     ";
 
-        let p = parse_schedule::<VerboseError<_>>();
+        let p = parse_schedule();
         eprintln!("{}", String::from_utf8_lossy(&[]));
         let (rest, val) = p(i).expect("parse");
         assert_eq!(String::from_utf8_lossy(rest), "");
@@ -89,21 +93,21 @@ LTGRVPK   0009 00091     TF                                                     
                 basic: BasicSchedule {
                     transaction_type: TransactionType::New,
                     uid: "W03751".into(),
-                    start_date: "190519".into(),
-                    end_date: "191208".into(),
+                    start_date: London.ymd(2019, 5, 19),
+                    end_date: London.ymd(2019, 12, 8),
                     days: "0000001".into(),
-                    bank_holiday: " ".into(),
+                    bank_holiday: None,
                     status: "P".into(),
                     category: "OO".into(),
                     identity: "2J43".into(),
-                    headcode: "    ".into(),
+                    headcode: None,
                     service_code: "24655005".into(),
                     speed: "090".into(),
                     seating_class: "S".into(),
-                    sleepers: " ".into(),
-                    reservations: " ".into(),
-                    catering: "    ".into(),
-                    branding: "    ".into(),
+                    sleepers: None,
+                    reservations: None,
+                    catering: None,
+                    branding: None,
                     stp: STP::Permanent,
                 },
                 extra: Some(ScheduleExtra {
@@ -149,6 +153,4 @@ LTGRVPK   0009 00091     TF                                                     
             }
         )
     }
-    //
-
 }
