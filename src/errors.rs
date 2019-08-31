@@ -20,27 +20,13 @@ impl fmt::Display for CIFParseError<'_> {
             &CIFParseError::NomVerbose(ref err) => {
                 writeln!(fmt, "NomError: ")?;
                 for &(ref s, ref kind) in err.errors.iter() {
-                    let len = std::cmp::min(s.len(), SNIPPET_LEN);
-                    writeln!(
-                        fmt,
-                        "Err: {:?}: {:?}{}",
-                        kind,
-                        String::from_utf8_lossy(&s[..len]),
-                        if s.len() < SNIPPET_LEN { "" } else { "…" }
-                    )?;
+                    writeln!(fmt, "Err: {:?}: {}", kind, as_snippet(s))?;
                 }
                 Ok(())
             }
             &CIFParseError::Utf8(ref err) => writeln!(fmt, "UTF conversion: {}", err),
             &CIFParseError::MandatoryFieldMissing(s) => {
-                let len = std::cmp::min(s.len(), SNIPPET_LEN);
-
-                writeln!(
-                    fmt,
-                    "Mandatory field missing at: {:?}{}",
-                    String::from_utf8_lossy(&s[..len]),
-                    if s.len() < SNIPPET_LEN { "" } else { "…" }
-                )
+                writeln!(fmt, "Mandatory field missing at: {}", as_snippet(s))
             }
             &CIFParseError::InvalidNumber(e) => writeln!(fmt, "Invalid number: {:?}", e),
         }
@@ -84,4 +70,13 @@ impl std::convert::From<lexical_core::Error> for CIFParseError<'_> {
     fn from(e: lexical_core::Error) -> Self {
         CIFParseError::InvalidNumber(e)
     }
+}
+
+fn as_snippet(s: &[u8]) -> String {
+    let len = std::cmp::min(s.len(), SNIPPET_LEN);
+    format!(
+        "{}{}",
+        String::from_utf8_lossy(&s[..len]),
+        if s.len() < SNIPPET_LEN { "" } else { "…" }
+    )
 }
