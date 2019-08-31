@@ -153,4 +153,47 @@ LTGRVPK   0009 00091     TF                                                     
             }
         )
     }
+    //
+
+    #[test]
+    fn should_parse_cancellation_schedule() {
+        let i = b"\
+BSNC670061905191907280000001            1                                      C\n\
+ZZ";
+
+        let p = parse_schedule();
+        eprintln!("{}", String::from_utf8_lossy(&[]));
+        let (rest, val) = p(i).expect("parse");
+        assert_eq!(String::from_utf8_lossy(rest), "\nZZ");
+        assert_eq!(
+            val,
+            Schedule {
+                basic: BasicSchedule {
+                    transaction_type: TransactionType::New,
+                    uid: "C67006".into(),
+                    start_date: London.ymd(2019, 5, 19),
+                    end_date: Some(London.ymd(2019, 7, 28)),
+                    days: Some("0000001"),
+                    bank_holiday: None,
+                    status: None,
+                    category: None,
+                    identity: None,
+                    headcode: None,
+                    service_code: None,
+                    speed: None,
+                    seating_class: None,
+                    sleepers: None,
+                    reservations: None,
+                    catering: None,
+                    branding: None,
+                    stp: STP::Cancellation,
+                },
+                extra: None,
+                origin: None,
+                intermediate: Vec::new(),
+                changes: Vec::new(),
+                terminal: None,
+            }
+        )
+    }
 }
