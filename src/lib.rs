@@ -6,6 +6,7 @@ mod association;
 mod basic_schedule;
 mod change_en_route;
 mod header;
+mod helpers;
 mod location_intermediate;
 mod location_origin;
 mod location_terminating;
