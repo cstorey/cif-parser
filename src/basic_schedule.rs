@@ -204,7 +204,7 @@ ZZ";
     }
 
     #[test]
-    fn should_parse_2() {
+    fn should_parse_l63173() {
         let i = b"BSRL631731905191909290000001 POO2Y16    122214000 EMU375 075D                  P";
         let p = parse_basic_schedule();
         let (rest, val) = p(i).expect("parse");
