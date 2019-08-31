@@ -23,10 +23,10 @@ pub(super) fn parse_tiploc_insert<'a>(
         let (i, _) = tag("TI")(i)?;
         let (i, tiploc) = Tiploc::parse(i)?;
         let (i, _) = string(2usize)(i)?; // `capitals`
-        let (i, nlc) = mandatory_str(6usize)(i)?;
-        let (i, nlc_check) = mandatory_str(1usize)(i)?;
-        let (i, tps_description) = mandatory_str(26usize)(i)?;
-        let (i, stanox) = mandatory_str(5usize)(i)?;
+        let (i, nlc) = mandatory_str("nlc", 6usize)(i)?;
+        let (i, nlc_check) = mandatory_str("nlc_check", 1usize)(i)?;
+        let (i, tps_description) = mandatory_str("tps_description", 26usize)(i)?;
+        let (i, stanox) = mandatory_str("stanox", 5usize)(i)?;
         let (i, _po_code) = string(4usize)(i)?;
         let (i, crs) = string(3usize)(i)?;
         let (i, nlc_desc) = string(16usize)(i)?;

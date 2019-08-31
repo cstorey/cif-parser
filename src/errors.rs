@@ -10,7 +10,7 @@ const SNIPPET_LEN: usize = 240;
 pub enum CIFParseError<'a> {
     NomVerbose(VerboseError<&'a [u8]>),
     Utf8(std::str::Utf8Error),
-    MandatoryFieldMissing(&'a [u8]),
+    MandatoryFieldMissing(&'static str, &'a [u8]),
     InvalidNumber(lexical_core::Error),
     InvalidTime(&'a [u8]),
 }
@@ -26,9 +26,12 @@ impl fmt::Display for CIFParseError<'_> {
                 Ok(())
             }
             &CIFParseError::Utf8(ref err) => writeln!(fmt, "UTF conversion: {}", err),
-            &CIFParseError::MandatoryFieldMissing(s) => {
-                writeln!(fmt, "Mandatory field missing at: {}", as_snippet(s))
-            }
+            &CIFParseError::MandatoryFieldMissing(field_name, s) => writeln!(
+                fmt,
+                "Mandatory field {} missing at: {}",
+                field_name,
+                as_snippet(s)
+            ),
             &CIFParseError::InvalidNumber(e) => writeln!(fmt, "Invalid number: {:?}", e),
             &CIFParseError::InvalidTime(s) => writeln!(fmt, "Invalid time: {}", as_snippet(s)),
         }
@@ -51,7 +54,7 @@ impl<'a> nom::error::ParseError<&'a [u8]> for CIFParseError<'a> {
                 warn!("Dropping UTF error: {}", e);
                 Self::from_error_kind(i, kind)
             }
-            CIFParseError::MandatoryFieldMissing(_) => {
+            CIFParseError::MandatoryFieldMissing(_, _) => {
                 unimplemented!("CIFParseError::append: MandatoryFieldMissing")
             }
             CIFParseError::InvalidNumber(e) => {

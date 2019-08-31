@@ -19,13 +19,13 @@ pub(super) fn parse_tiploc_amend<'a>(
 ) -> impl Fn(&'a [u8]) -> IResult<&'a [u8], TiplocAmend, CIFParseError> {
     |i: &'a [u8]| -> IResult<&'a [u8], TiplocAmend, CIFParseError> {
         let (i, _) = tag("TA")(i)?;
-        let (i, tiploc) = mandatory_str(7usize)(i)?;
-        let (i, _) = mandatory_str(2usize)(i)?; // `capitals`
-        let (i, nlc) = mandatory_str(6usize)(i)?;
-        let (i, nlc_check) = mandatory_str(1usize)(i)?;
-        let (i, tps_description) = mandatory_str(26usize)(i)?;
-        let (i, stanox) = mandatory_str(5usize)(i)?;
-        let (i, _po_code) = mandatory_str(4usize)(i)?;
+        let (i, tiploc) = mandatory_str("tiploc", 7usize)(i)?;
+        let (i, _) = mandatory_str("_", 2usize)(i)?; // `capitals`
+        let (i, nlc) = mandatory_str("nlc", 6usize)(i)?;
+        let (i, nlc_check) = mandatory_str("nlc_check", 1usize)(i)?;
+        let (i, tps_description) = mandatory_str("tps_description", 26usize)(i)?;
+        let (i, stanox) = mandatory_str("stanox", 5usize)(i)?;
+        let (i, _po_code) = mandatory_str("_po_code", 4usize)(i)?;
         let (i, crs) = string(3usize)(i)?;
         let (i, nlc_desc) = string(16usize)(i)?;
         let (i, new_tiploc) = string(7usize)(i)?;

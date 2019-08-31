@@ -10,7 +10,7 @@ pub struct Tiploc<'a>(&'a str);
 
 impl<'a> Tiploc<'a> {
     pub fn parse(i: &'a [u8]) -> IResult<&'a [u8], Self, CIFParseError> {
-        let (i, name) = mandatory(string(7usize))(i)?;
+        let (i, name) = mandatory("tiploc", string(7usize))(i)?;
         Ok((i, Tiploc(name)))
     }
 }

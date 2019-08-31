@@ -20,21 +20,25 @@ pub fn string<'a>(
 }
 
 pub fn mandatory<'a, T>(
+    field_name: &'static str,
     inner: impl Fn(&'a [u8]) -> IResult<&'a [u8], Option<T>, CIFParseError>,
 ) -> impl Fn(&'a [u8]) -> IResult<&'a [u8], T, CIFParseError> {
     move |i: &'a [u8]| -> IResult<&'a [u8], T, CIFParseError> {
         match inner(i)? {
             (rest, Some(val)) => Ok((rest, val)),
 
-            (_rest, None) => Err(nom::Err::Error(CIFParseError::MandatoryFieldMissing(i))),
+            (_rest, None) => Err(nom::Err::Error(CIFParseError::MandatoryFieldMissing(
+                field_name, i,
+            ))),
         }
     }
 }
 
 pub fn mandatory_str<'a>(
+    field_name: &'static str,
     nchars: usize,
 ) -> impl Fn(&'a [u8]) -> IResult<&'a [u8], &'a str, CIFParseError> {
-    mandatory(string(nchars))
+    mandatory(field_name, string(nchars))
 }
 
 pub fn date<'a>() -> impl Fn(&'a [u8]) -> IResult<&'a [u8], Date<Tz>, CIFParseError> {
@@ -121,9 +125,25 @@ mod test {
         fn inner<'a>(i: &'a [u8]) -> IResult<&'a [u8], Option<()>, CIFParseError> {
             Ok((i, Some(())))
         };
-        let p = mandatory(inner);
+        let p = mandatory("field", inner);
         let (rest, result) = p(b"Hi").expect("parse");
         assert_eq!((rest, result), (b"Hi" as &[u8], ()));
+    }
+
+    #[test]
+    fn mandatory_includes_field_name_in_error() {
+        fn inner<'a>(i: &'a [u8]) -> IResult<&'a [u8], Option<()>, CIFParseError> {
+            Ok((i, None))
+        };
+        let p = mandatory("field_name", inner);
+
+        let err = p(b"  ").expect_err("should fail");
+        assert!(
+            format!("{:?}", err).contains("field_name"),
+            "Error {:?} should contain field name: {:?}",
+            err,
+            "field_name"
+        )
     }
 
     #[test]
