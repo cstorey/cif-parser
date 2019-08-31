@@ -2,9 +2,10 @@ use std::borrow::Cow;
 
 use nom::{
     branch::alt, bytes::streaming::*, character::is_space, character::streaming::*,
-    combinator::map, error::*, IResult,
+    combinator::map, IResult,
 };
 
+use crate::errors::CIFParseError;
 use crate::helpers::{mandatory, string};
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -26,9 +27,8 @@ pub struct Header<'a> {
     pub user_end_date: Cow<'a, str>,
 }
 
-pub(super) fn parse_header<'a, E: ParseError<&'a [u8]>>(
-) -> impl Fn(&'a [u8]) -> IResult<&'a [u8], Header, E> {
-    |i: &'a [u8]| -> IResult<&'a [u8], Header, E> {
+pub(super) fn parse_header<'a>() -> impl Fn(&'a [u8]) -> IResult<&'a [u8], Header, CIFParseError> {
+    |i: &'a [u8]| -> IResult<&'a [u8], Header, CIFParseError> {
         let (i, _) = tag("HD")(i)?;
         let (i, file_mainframe_identity) = mandatory(string(20usize))(i)?;
         let (i, extract_date) = mandatory(string(6usize))(i)?;
@@ -67,7 +67,7 @@ mod test {
 
     #[test]
     fn should_parse_full_header() {
-        let p = parse_header::<VerboseError<_>>();
+        let p = parse_header();
         let hdr =
             b"HDTPS.UDFROC1.PD1907050507191939DFROC2S       FA050719040720                    ";
         let (rest, _val) = p(hdr).expect("parse_header");

@@ -11,6 +11,7 @@ const SNIPPET_LEN: usize = 240;
 pub enum CIFParseError {
     NomVerbose(VerboseError<String>),
     Utf8(std::str::Utf8Error),
+    MandatoryFieldMissing,
 }
 
 impl fmt::Display for CIFParseError {
@@ -31,6 +32,7 @@ impl fmt::Display for CIFParseError {
                 Ok(())
             }
             &CIFParseError::Utf8(ref err) => writeln!(fmt, "UTF conversion: {}", err),
+            &CIFParseError::MandatoryFieldMissing => writeln!(fmt, "Mandatory field missing"),
         }
     }
 }
@@ -55,6 +57,9 @@ impl nom::error::ParseError<&[u8]> for CIFParseError {
             e @ CIFParseError::Utf8(_) => {
                 warn!("Dropping UTF error: {}", e);
                 Self::from_error_kind(i, kind)
+            }
+            CIFParseError::MandatoryFieldMissing => {
+                unimplemented!("CIFParseError::append: MandatoryFieldMissing")
             }
         }
     }

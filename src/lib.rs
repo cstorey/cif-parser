@@ -1,6 +1,4 @@
-use nom::{
-    branch::alt, character::streaming::*, combinator::map, sequence::terminated, IResult,
-};
+use nom::{branch::alt, character::streaming::*, combinator::map, sequence::terminated, IResult};
 
 mod association;
 mod basic_schedule;
