@@ -1,4 +1,7 @@
-use nom::{branch::alt, character::streaming::*, combinator::map, sequence::terminated, IResult};
+use nom::{
+    branch::alt, bytes::streaming::take, character::streaming::*, combinator::map,
+    sequence::terminated, IResult,
+};
 
 mod association;
 mod basic_schedule;
@@ -41,6 +44,7 @@ pub enum Record<'a> {
     ScheduleCancellation(ScheduleCancellation<'a>),
     ChangeEnRoute(ChangeEnRoute<'a>),
     Trailer(Trailer),
+    Unrecognised(&'a str),
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -69,6 +73,18 @@ pub fn parse<'a>(i: &'a [u8]) -> IResult<&'a [u8], Record, CIFParseError> {
             Record::ScheduleCancellation,
         ),
         map(trailer::parse_trailer(), Record::Trailer),
+        map(parse_unrecognised(), Record::Unrecognised),
     ));
     terminated(p, char('\n'))(i)
+}
+
+fn parse_unrecognised<'a>() -> impl Fn(&'a [u8]) -> IResult<&'a [u8], &'a str, CIFParseError> {
+    |i: &'a [u8]| -> IResult<&'a [u8], &'a str, CIFParseError> {
+        let (i, other) = take(80usize)(i)?;
+
+        Ok((
+            i,
+            std::str::from_utf8(other).map_err(CIFParseError::into_unrecoverable)?,
+        ))
+    }
 }

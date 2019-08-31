@@ -8,7 +8,7 @@ use memmap::Mmap;
 use nom::Err;
 use structopt::StructOpt;
 
-use cif_parser::parse;
+use cif_parser::{parse, Record};
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "cif-parser", about = "CIF file parser")]
@@ -26,6 +26,11 @@ fn main() -> Fallible<()> {
         info!("Parsing file: {:?}", f);
         while i.len() > 0 {
             match parse(&i) {
+                Ok((rest, Record::Unrecognised(val))) => {
+                    i = rest;
+                    warn!("Unrecognised: {:#?}", val)
+                }
+
                 Ok((rest, val)) => {
                     i = rest;
                     debug!("Ok: {:#?}", val)

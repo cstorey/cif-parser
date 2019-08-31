@@ -2,7 +2,6 @@ use std::fmt;
 
 use log::*;
 use nom::error::*;
-use smallvec;
 
 const SNIPPET_LEN: usize = 240;
 
@@ -77,11 +76,9 @@ impl<'a> nom::error::ParseError<&'a [u8]> for CIFParseError<'a> {
     }
 }
 
-impl<A: smallvec::Array<Item = u8>> std::convert::From<smallstr::FromUtf8Error<A>>
-    for CIFParseError<'_>
-{
-    fn from(e: smallstr::FromUtf8Error<A>) -> Self {
-        CIFParseError::Utf8(e.utf8_error())
+impl std::convert::From<std::str::Utf8Error> for CIFParseError<'_> {
+    fn from(e: std::str::Utf8Error) -> Self {
+        CIFParseError::Utf8(e)
     }
 }
 impl std::convert::From<lexical_core::Error> for CIFParseError<'_> {
