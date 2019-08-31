@@ -41,7 +41,7 @@ pub fn mandatory_str<'a>(
     mandatory(field_name, string(nchars))
 }
 
-pub fn date<'a>() -> impl Fn(&'a [u8]) -> IResult<&'a [u8], Date<Tz>, CIFParseError> {
+pub fn date_ddmmyy<'a>() -> impl Fn(&'a [u8]) -> IResult<&'a [u8], Date<Tz>, CIFParseError> {
     move |i: &'a [u8]| -> IResult<&'a [u8], Date<Tz>, CIFParseError> {
         let (i, dd) = take_while_m_n(2usize, 2, is_digit)(i)?;
         let (i, mm) = take_while_m_n(2usize, 2, is_digit)(i)?;
@@ -149,7 +149,7 @@ mod test {
     #[test]
     fn date_should_parse_ddmmyy() {
         let s = b"060315!!";
-        let (rest, result) = date()(s).expect("parse");
+        let (rest, result) = date_ddmmyy()(s).expect("parse");
         assert_eq!((rest, result), (b"!!" as &[u8], London.ymd(2015, 3, 6)));
     }
 

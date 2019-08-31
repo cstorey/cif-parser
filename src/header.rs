@@ -6,7 +6,7 @@ use nom::{
 };
 
 use crate::errors::CIFParseError;
-use crate::helpers::{date, mandatory_str, string, time};
+use crate::helpers::{date_ddmmyy, mandatory_str, string, time};
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum FullOrUpdate {
@@ -33,7 +33,7 @@ pub(super) fn parse_header<'a>() -> impl Fn(&'a [u8]) -> IResult<&'a [u8], Heade
     |i: &'a [u8]| -> IResult<&'a [u8], Header, CIFParseError> {
         let (i, _) = tag("HD")(i)?;
         let (i, file_mainframe_identity) = mandatory_str("file_mainframe_identity", 20usize)(i)?;
-        let (i, extract_date) = date()(i)?;
+        let (i, extract_date) = date_ddmmyy()(i)?;
         let (i, extract_time) = time()(i)?;
         let (i, current_file) = mandatory_str("current_file", 7usize)(i)?;
         let (i, last_file) = string(7usize)(i)?;
@@ -42,8 +42,8 @@ pub(super) fn parse_header<'a>() -> impl Fn(&'a [u8]) -> IResult<&'a [u8], Heade
             map(char('F'), |_| FullOrUpdate::Full),
         ))(i)?;
         let (i, version) = mandatory_str("version", 1usize)(i)?;
-        let (i, user_start_date) = date()(i)?;
-        let (i, user_end_date) = date()(i)?;
+        let (i, user_start_date) = date_ddmmyy()(i)?;
+        let (i, user_end_date) = date_ddmmyy()(i)?;
         let (i, _spare) = take_while_m_n(20, 20, is_space)(i)?;
 
         Ok((
