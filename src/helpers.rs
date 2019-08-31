@@ -1,5 +1,5 @@
 use chrono::offset::TimeZone;
-use chrono::Date;
+use chrono::{Date, NaiveTime};
 use chrono_tz::{Europe::London, Tz};
 use lexical_core;
 use nom::{bytes::streaming::*, character::is_digit, IResult};
@@ -41,6 +41,27 @@ pub fn date<'a>() -> impl Fn(&'a [u8]) -> IResult<&'a [u8], Date<Tz>, CIFParseEr
             lexical_core::atou32(mm).map_err(into_nom_wrapped)?,
             lexical_core::atou32(dd).map_err(into_nom_wrapped)?,
         );
+        Ok((i, dt))
+    }
+}
+
+pub fn time<'a>() -> impl Fn(&'a [u8]) -> IResult<&'a [u8], NaiveTime, CIFParseError> {
+    move |i: &'a [u8]| -> IResult<&'a [u8], NaiveTime, CIFParseError> {
+        let start = i;
+        let (i, hh) = take_while_m_n(2usize, 2, is_digit)(i)?;
+        let (i, mm) = take_while_m_n(2usize, 2, is_digit)(i)?;
+        eprintln!(
+            "Parsing time: {}:{}",
+            lexical_core::atou32(hh).map_err(into_nom_wrapped)?,
+            lexical_core::atou32(mm).map_err(into_nom_wrapped)?,
+        );
+        let dt = NaiveTime::from_hms_opt(
+            lexical_core::atou32(hh).map_err(into_nom_wrapped)?,
+            lexical_core::atou32(mm).map_err(into_nom_wrapped)?,
+            0,
+        )
+        .ok_or_else(|| CIFParseError::InvalidTime(start))
+        .map_err(into_nom_wrapped)?;
         Ok((i, dt))
     }
 }
@@ -106,4 +127,13 @@ mod test {
         assert_eq!((rest, result), (b"!!" as &[u8], London.ymd(2015, 3, 6)));
     }
 
+    #[test]
+    fn time_should_parse_hhmm() {
+        let s = b"2151!!";
+        let (rest, result) = time()(s).expect("parse");
+        assert_eq!(
+            (rest, result),
+            (b"!!" as &[u8], NaiveTime::from_hms(21, 51, 0))
+        );
+    }
 }

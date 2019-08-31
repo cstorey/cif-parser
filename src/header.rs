@@ -1,4 +1,4 @@
-use chrono::Date;
+use chrono::{Date, NaiveTime};
 use chrono_tz::Tz;
 use nom::{
     branch::alt, bytes::streaming::*, character::is_space, character::streaming::*,
@@ -6,7 +6,7 @@ use nom::{
 };
 
 use crate::errors::CIFParseError;
-use crate::helpers::{date, mandatory, string};
+use crate::helpers::{date, mandatory, string, time};
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum FullOrUpdate {
@@ -17,8 +17,8 @@ pub enum FullOrUpdate {
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Header<'a> {
     pub file_mainframe_identity: &'a str,
-    pub extract_date: Date<Tz>,
-    pub extract_time: &'a str,
+    pub extracted_date: Date<Tz>,
+    pub extracted_time: NaiveTime,
     pub current_file: &'a str,
     pub last_file: Option<&'a str>,
     pub update_indicator: FullOrUpdate,
@@ -32,7 +32,7 @@ pub(super) fn parse_header<'a>() -> impl Fn(&'a [u8]) -> IResult<&'a [u8], Heade
         let (i, _) = tag("HD")(i)?;
         let (i, file_mainframe_identity) = mandatory(string(20usize))(i)?;
         let (i, extract_date) = date()(i)?;
-        let (i, extract_time) = mandatory(string(4usize))(i)?;
+        let (i, extract_time) = time()(i)?;
         let (i, current_file) = mandatory(string(7usize))(i)?;
         let (i, last_file) = string(7usize)(i)?;
         let (i, update_indicator) = alt((
@@ -48,8 +48,8 @@ pub(super) fn parse_header<'a>() -> impl Fn(&'a [u8]) -> IResult<&'a [u8], Heade
             i,
             Header {
                 file_mainframe_identity: file_mainframe_identity,
-                extract_date: extract_date,
-                extract_time: extract_time,
+                extracted_date: extract_date,
+                extracted_time: extract_time,
                 current_file: current_file,
                 last_file: last_file,
                 update_indicator: update_indicator,

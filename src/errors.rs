@@ -12,6 +12,7 @@ pub enum CIFParseError<'a> {
     Utf8(std::str::Utf8Error),
     MandatoryFieldMissing(&'a [u8]),
     InvalidNumber(lexical_core::Error),
+    InvalidTime(&'a [u8]),
 }
 
 impl fmt::Display for CIFParseError<'_> {
@@ -29,6 +30,7 @@ impl fmt::Display for CIFParseError<'_> {
                 writeln!(fmt, "Mandatory field missing at: {}", as_snippet(s))
             }
             &CIFParseError::InvalidNumber(e) => writeln!(fmt, "Invalid number: {:?}", e),
+            &CIFParseError::InvalidTime(s) => writeln!(fmt, "Invalid time: {}", as_snippet(s)),
         }
     }
 }
@@ -54,6 +56,9 @@ impl<'a> nom::error::ParseError<&'a [u8]> for CIFParseError<'a> {
             }
             CIFParseError::InvalidNumber(e) => {
                 unimplemented!("CIFParseError::append: InvalidNumber: {:?}", e)
+            }
+            CIFParseError::InvalidTime(e) => {
+                unimplemented!("CIFParseError::append: InvalidTime: {:?}", e)
             }
         }
     }
