@@ -21,10 +21,10 @@ pub struct BasicSchedule<'a> {
     pub days: &'a str,
     pub bank_holiday: Option<&'a str>,
     pub status: &'a str,
-    pub category: &'a str,
-    pub identity: &'a str,
+    pub category: Option<&'a str>,
+    pub identity: Option<&'a str>,
     pub headcode: Option<&'a str>,
-    pub service_code: &'a str,
+    pub service_code: Option<&'a str>,
     pub speed: &'a str,
     pub seating_class: Option<&'a str>,
     pub sleepers: Option<&'a str>,
@@ -59,11 +59,11 @@ pub(super) fn parse_basic_schedule<'a>(
         let (i, days) = mandatory_str("days", 7usize)(i)?; // Bit string?
         let (i, bank_holiday) = string(1usize)(i)?;
         let (i, status) = mandatory_str("status", 1usize)(i)?;
-        let (i, category) = mandatory_str("category", 2usize)(i)?;
-        let (i, identity) = mandatory_str("identity", 4usize)(i)?;
+        let (i, category) = string(2usize)(i)?;
+        let (i, identity) = string(4usize)(i)?;
         let (i, headcode) = string(4usize)(i)?;
         let (i, _course_indicator) = string(1usize)(i)?;
-        let (i, service_code) = mandatory_str("service_code", 8usize)(i)?;
+        let (i, service_code) = string(8usize)(i)?;
         let (i, _portion_id) = string(1usize)(i)?;
         let (i, _power_type) = mandatory_str("_power_type", 3usize)(i)?;
         let (i, _timing_load) = string(4usize)(i)?;
@@ -219,11 +219,41 @@ ZZ";
                 days: "0000001",
                 bank_holiday: None,
                 status: "P",
-                category: "OO",
-                identity: "2Y16",
+                category: "OO".into(),
+                identity: "2Y16".into(),
                 headcode: None,
-                service_code: "22214000",
+                service_code: "22214000".into(),
                 speed: "075",
+                seating_class: None,
+                sleepers: None,
+                reservations: None,
+                catering: None,
+                branding: None,
+                stp: STP::Permanent
+            },
+        )
+    }
+    #[test]
+    fn should_parse_h19351() {
+        let i = b"BSRH193511905201911011111100 F          1         D  600 060                   P";
+        let p = parse_basic_schedule();
+        let (rest, val) = p(i).expect("parse");
+        assert_eq!(String::from_utf8_lossy(rest), "");
+        assert_eq!(
+            val,
+            BasicSchedule {
+                transaction_type: TransactionType::Revise,
+                uid: "H19351",
+                start_date: London.ymd(2019, 5, 20),
+                end_date: London.ymd(2019, 11, 1),
+                days: "1111100",
+                bank_holiday: None,
+                status: "F",
+                category: None,
+                identity: None,
+                headcode: None,
+                service_code: None,
+                speed: "060",
                 seating_class: None,
                 sleepers: None,
                 reservations: None,
