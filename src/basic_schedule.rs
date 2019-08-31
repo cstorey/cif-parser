@@ -26,7 +26,7 @@ pub struct BasicSchedule<'a> {
     pub headcode: Option<&'a str>,
     pub service_code: &'a str,
     pub speed: &'a str,
-    pub seating_class: &'a str,
+    pub seating_class: Option<&'a str>,
     pub sleepers: Option<&'a str>,
     pub reservations: Option<&'a str>,
     pub catering: Option<&'a str>,
@@ -69,7 +69,7 @@ pub(super) fn parse_basic_schedule<'a>(
         let (i, _timing_load) = string(4usize)(i)?;
         let (i, speed) = mandatory_str("speed", 3usize)(i)?;
         let (i, _operating_characteristics) = string(6usize)(i)?;
-        let (i, seating_class) = mandatory_str("seating_class", 1usize)(i)?;
+        let (i, seating_class) = string(1usize)(i)?;
         let (i, sleepers) = string(1usize)(i)?;
         let (i, reservations) = string(1usize)(i)?;
         let (i, _connection) = string(1usize)(i)?;
@@ -200,6 +200,37 @@ ZZ";
                 days: "0000001".into(),
                 bank_holiday: " ".into(),
             }
+        )
+    }
+
+    #[test]
+    fn should_parse_2() {
+        let i = b"BSRL631731905191909290000001 POO2Y16    122214000 EMU375 075D                  P";
+        let p = parse_basic_schedule();
+        let (rest, val) = p(i).expect("parse");
+        assert_eq!(String::from_utf8_lossy(rest), "");
+        assert_eq!(
+            val,
+            BasicSchedule {
+                transaction_type: TransactionType::Revise,
+                uid: "L63173",
+                start_date: London.ymd(2019, 5, 19),
+                end_date: London.ymd(2019, 9, 29),
+                days: "0000001",
+                bank_holiday: None,
+                status: "P",
+                category: "OO",
+                identity: "2Y16",
+                headcode: None,
+                service_code: "22214000",
+                speed: "075",
+                seating_class: None,
+                sleepers: None,
+                reservations: None,
+                catering: None,
+                branding: None,
+                stp: STP::Permanent
+            },
         )
     }
 
