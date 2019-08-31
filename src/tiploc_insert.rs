@@ -1,5 +1,3 @@
-use std::borrow::Cow;
-
 use nom::{bytes::streaming::*, IResult};
 
 use crate::errors::CIFParseError;
@@ -9,12 +7,12 @@ use crate::tiploc::Tiploc;
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct TiplocInsert<'a> {
     pub tiploc: Tiploc<'a>,
-    pub nlc: Cow<'a, str>,
-    pub nlc_check: Cow<'a, str>,
-    pub tps_description: Cow<'a, str>,
-    pub stanox: Cow<'a, str>,
-    pub crs: Option<Cow<'a, str>>,
-    pub nlc_desc: Option<Cow<'a, str>>,
+    pub nlc: &'a str,
+    pub nlc_check: &'a str,
+    pub tps_description: &'a str,
+    pub stanox: &'a str,
+    pub crs: Option<&'a str>,
+    pub nlc_desc: Option<&'a str>,
 }
 
 pub(super) fn parse_tiploc_insert<'a>(
@@ -36,12 +34,12 @@ pub(super) fn parse_tiploc_insert<'a>(
             i,
             TiplocInsert {
                 tiploc: tiploc,
-                nlc: nlc.into(),
-                nlc_check: nlc_check.into(),
-                tps_description: tps_description.into(),
-                stanox: stanox.into(),
-                crs: crs.map(Into::into),
-                nlc_desc: nlc_desc.map(Into::into),
+                nlc: nlc,
+                nlc_check: nlc_check,
+                tps_description: tps_description,
+                stanox: stanox,
+                crs: crs,
+                nlc_desc: nlc_desc,
             },
         ))
     }
