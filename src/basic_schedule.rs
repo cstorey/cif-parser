@@ -40,8 +40,8 @@ pub struct ScheduleCancellation<'a> {
     pub uid: Cow<'a, str>,
     pub start_date: Date<Tz>,
     pub end_date: Date<Tz>,
-    pub days: Cow<'a, str>,
-    pub bank_holiday: Cow<'a, str>,
+    pub days: &'a str,
+    pub bank_holiday: Option<&'a str>,
 }
 
 pub(super) fn parse_basic_schedule<'a>(
@@ -120,10 +120,10 @@ pub(super) fn parse_schedule_cancellation<'a>(
         let (i, uid) = take(6usize)(i)?;
         let (i, start_date) = date_yymmdd()(i)?;
         let (i, end_date) = date_yymmdd()(i)?;
-        let (i, days) = take(7usize)(i)?; // Bit string?
-        let (i, bank_holiday) = take(1usize)(i)?;
+        let (i, days) = mandatory_str("days", 7usize)(i)?; // Bit string?
+        let (i, bank_holiday) = string(1usize)(i)?;
         let (i, _spare) = take_while_m_n(11, 11, is_space)(i)?;
-        let (i, _course_indicator) = take(1usize)(i)?;
+        let (i, _course_indicator) = string(1usize)(i)?;
         let (i, _spare) = take_while_m_n(38, 38, is_space)(i)?;
         let (i, _stp) = tag("C")(i)?;
 
@@ -134,8 +134,8 @@ pub(super) fn parse_schedule_cancellation<'a>(
                 uid: String::from_utf8_lossy(uid),
                 start_date: start_date,
                 end_date: end_date,
-                days: String::from_utf8_lossy(days),
-                bank_holiday: String::from_utf8_lossy(bank_holiday),
+                days: days,
+                bank_holiday: bank_holiday,
             },
         ))
     }
@@ -198,7 +198,7 @@ ZZ";
                 start_date: London.ymd(2019, 5, 19),
                 end_date: London.ymd(2019, 7, 28),
                 days: "0000001".into(),
-                bank_holiday: " ".into(),
+                bank_holiday: None,
             }
         )
     }
