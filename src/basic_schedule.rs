@@ -6,7 +6,7 @@ use nom::{
 };
 
 use crate::errors::CIFParseError;
-use crate::helpers::{date_yymmdd, mandatory_str, string};
+use crate::helpers::{date_yymmdd, days, mandatory_str, string, Days};
 
 use super::{TransactionType, STP};
 
@@ -16,7 +16,7 @@ pub struct BasicSchedule<'a> {
     pub uid: &'a str,
     pub start_date: Date<Tz>,
     pub end_date: Option<Date<Tz>>,
-    pub days: Option<&'a str>,
+    pub days: Days,
     pub bank_holiday: Option<&'a str>,
     pub status: Option<&'a str>,
     pub category: Option<&'a str>,
@@ -47,7 +47,7 @@ pub(super) fn parse_basic_schedule<'a>(
             map(date_yymmdd(), Some),
             map(take_while_m_n(6, 6, is_space), |_| None),
         ))(i)?;
-        let (i, days) = string(7usize)(i)?; // Bit string?
+        let (i, days) = days()(i)?; // Bit string?
         let (i, bank_holiday) = string(1usize)(i)?;
         let (i, status) = string(1usize)(i)?;
         let (i, category) = string(2usize)(i)?;
@@ -121,7 +121,7 @@ mod test {
                 uid: "G82885".into(),
                 start_date: London.ymd(2015, 10, 19),
                 end_date: London.ymd(2015, 10, 23).into(),
-                days: "1100100".into(),
+                days: Days::MON | Days::TUE | Days::FRI,
                 bank_holiday: None,
                 status: "P".into(),
                 category: "OO".into(),
@@ -156,7 +156,7 @@ ZZ";
                 uid: "C67006".into(),
                 start_date: London.ymd(2019, 5, 19),
                 end_date: Some(London.ymd(2019, 7, 28)),
-                days: Some("0000001"),
+                days: Days::SUN,
                 bank_holiday: None,
                 status: None,
                 category: None,
@@ -187,7 +187,7 @@ ZZ";
                 uid: "L63173",
                 start_date: London.ymd(2019, 5, 19),
                 end_date: London.ymd(2019, 9, 29).into(),
-                days: "0000001".into(),
+                days: Days::SUN,
                 bank_holiday: None,
                 status: "P".into(),
                 category: "OO".into(),
@@ -217,7 +217,7 @@ ZZ";
                 uid: "H19351",
                 start_date: London.ymd(2019, 5, 20),
                 end_date: London.ymd(2019, 11, 1).into(),
-                days: "1111100".into(),
+                days: Days::MON | Days::TUE | Days::WED | Days::THU | Days::FRI,
                 bank_holiday: None,
                 status: "F".into(),
                 category: None,
@@ -248,7 +248,7 @@ ZZ";
                 uid: "C02189",
                 start_date: London.ymd(2019, 5, 19),
                 end_date: London.ymd(2019, 12, 8).into(),
-                days: "0000001".into(),
+                days: Days::SUN,
                 bank_holiday: None,
                 status: "B".into(),
                 category: Some("BS"),
@@ -279,7 +279,7 @@ ZZ";
                 uid: "S48587",
                 start_date: London.ymd(2019, 5, 25),
                 end_date: None,
-                days: None,
+                days: Days::empty(),
                 bank_holiday: None,
                 status: None,
                 category: None,

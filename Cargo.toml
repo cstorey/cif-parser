@@ -17,6 +17,7 @@ smallvec = "0.6.10"
 chrono = "0.4.7"
 lexical-core = "0.5.0"
 chrono-tz = "0.5.1"
+bitflags = "1.1.0"
 
 [profile.release]
 debug = true

@@ -73,6 +73,7 @@ mod test {
     use chrono_tz::Europe::London;
 
     use super::*;
+    use crate::helpers::Days;
 
     #[test]
     fn should_parse_example() {
@@ -95,7 +96,7 @@ LTGRVPK   0009 00091     TF                                                     
                     uid: "W03751".into(),
                     start_date: London.ymd(2019, 5, 19),
                     end_date: London.ymd(2019, 12, 8).into(),
-                    days: "0000001".into(),
+                    days: Days::SUN,
                     bank_holiday: None,
                     status: "P".into(),
                     category: "OO".into(),
@@ -173,7 +174,7 @@ ZZ";
                     uid: "C67006".into(),
                     start_date: London.ymd(2019, 5, 19),
                     end_date: Some(London.ymd(2019, 7, 28)),
-                    days: Some("0000001"),
+                    days: Days::SUN,
                     bank_holiday: None,
                     status: None,
                     category: None,

@@ -1,3 +1,4 @@
+use bitflags::bitflags;
 use chrono::offset::TimeZone;
 use chrono::{Date, NaiveTime};
 use chrono_tz::{Europe::London, Tz};
@@ -5,6 +6,18 @@ use lexical_core;
 use nom::{bytes::streaming::*, character::is_digit, IResult};
 
 use crate::errors::CIFParseError;
+
+bitflags! {
+    pub struct Days: u8 {
+        const MON = 0b00000001;
+        const TUE = 0b0000010;
+        const WED = 0b00000100;
+        const THU = 0b00001000;
+        const FRI = 0b00010000;
+        const SAT = 0b00100000;
+        const SUN = 0b01000000;
+    }
+}
 
 pub fn string<'a>(
     nchars: usize,
@@ -83,6 +96,33 @@ pub fn time<'a>() -> impl Fn(&'a [u8]) -> IResult<&'a [u8], NaiveTime, CIFParseE
         .ok_or_else(|| CIFParseError::InvalidTime(start))
         .map_err(CIFParseError::into_unrecoverable)?;
         Ok((i, dt))
+    }
+}
+
+#[inline(never)]
+pub fn days<'a>() -> impl Fn(&'a [u8]) -> IResult<&'a [u8], Days, CIFParseError> {
+    #[inline(never)]
+    move |i: &'a [u8]| -> IResult<&'a [u8], Days, CIFParseError> {
+        fn is_bit_char(c: u8) -> bool {
+            return c == b' ' || c == b'0' || c == b'1';
+        }
+        let (i, slice) = take_while_m_n(7, 7, is_bit_char)(i)?;
+        let days = slice
+            .iter()
+            .zip(&[
+                Days::MON,
+                Days::TUE,
+                Days::WED,
+                Days::THU,
+                Days::FRI,
+                Days::SAT,
+                Days::SUN,
+            ])
+            .fold(
+                Days::empty(),
+                |days, (ch, day)| if ch == &b'1' { days | *day } else { days },
+            );
+        Ok((i, days))
     }
 }
 
@@ -169,5 +209,36 @@ mod test {
             (rest, result),
             (b"!!" as &[u8], NaiveTime::from_hms(21, 51, 0))
         );
+    }
+
+    #[test]
+    fn days_should_parse_bitwise_weekdays() {
+        let s = b"1111100";
+        let (rest, result) = days()(s).expect("parse");
+        assert_eq!(
+            (rest, result),
+            (
+                b"" as &[u8],
+                Days::MON | Days::TUE | Days::WED | Days::THU | Days::FRI
+            )
+        );
+    }
+    #[test]
+    fn days_should_parse_bitwise_saturday() {
+        let s = b"0000010";
+        let (rest, result) = days()(s).expect("parse");
+        assert_eq!((rest, result), (b"" as &[u8], Days::SAT));
+    }
+    #[test]
+    fn days_should_parse_bitwise_sunday() {
+        let s = b"0000001";
+        let (rest, result) = days()(s).expect("parse");
+        assert_eq!((rest, result), (b"" as &[u8], Days::SUN));
+    }
+    #[test]
+    fn days_should_parse_empty() {
+        let s = b"       !";
+        let (rest, result) = days()(s).expect("parse");
+        assert_eq!((rest, result), (b"!" as &[u8], Days::empty()));
     }
 }
