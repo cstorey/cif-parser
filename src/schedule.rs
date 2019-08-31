@@ -117,7 +117,8 @@ LTGRVPK   0009 00091     TF                                                     
                     applicable_timetable_code: "Y".into(),
                 }),
                 origin: Some(LocationOrigin {
-                    tiploc: "BROMLYN ".into(),
+                    tiploc: "BROMLYN".into(),
+                    tiploc_suffix: None,
                     scheduled_departure_time: "0004 ".into(),
                     public_departure: "0004".into(),
                     platform: "1  ".into(),

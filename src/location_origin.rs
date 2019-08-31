@@ -1,10 +1,15 @@
 use std::borrow::Cow;
 
-use nom::{bytes::streaming::*, character::is_space, error::*, IResult};
+use nom::{bytes::streaming::*, character::is_space, IResult};
+
+use crate::helpers::*;
+use crate::errors::CIFParseError;
+use crate::tiploc::*;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct LocationOrigin<'a> {
-    pub tiploc: Cow<'a, str>,
+    pub tiploc: Tiploc<'a>,
+    pub tiploc_suffix: Option<&'a str>,
     pub scheduled_departure_time: Cow<'a, str>,
     pub public_departure: Cow<'a, str>,
     pub platform: Cow<'a, str>,
@@ -15,11 +20,12 @@ pub struct LocationOrigin<'a> {
     pub perf_allowance: Cow<'a, str>,
 }
 
-pub(super) fn parse_location_origin<'a, E: ParseError<&'a [u8]>>(
-) -> impl Fn(&'a [u8]) -> IResult<&'a [u8], LocationOrigin, E> {
-    |i: &'a [u8]| -> IResult<&'a [u8], LocationOrigin, E> {
+pub(super) fn parse_location_origin<'a>(
+) -> impl Fn(&'a [u8]) -> IResult<&'a [u8], LocationOrigin, CIFParseError> {
+    |i: &'a [u8]| -> IResult<&'a [u8], LocationOrigin, CIFParseError> {
         let (i, _) = tag("LO")(i)?; // 1-2
-        let (i, tiploc) = take(8usize)(i)?; // 3-10
+        let (i, tiploc) = Tiploc::parse(i)?; // 3-9
+        let (i, tiploc_suffix) = string(1)(i)?; // 9-10
         let (i, scheduled_departure_time) = take(5usize)(i)?; // 11-15
         let (i, public_departure) = take(4usize)(i)?; // 16-19
         let (i, platform) = take(3usize)(i)?; // 20-22
@@ -33,7 +39,8 @@ pub(super) fn parse_location_origin<'a, E: ParseError<&'a [u8]>>(
         Ok((
             i,
             LocationOrigin {
-                tiploc: String::from_utf8_lossy(tiploc),
+                tiploc: tiploc,
+                tiploc_suffix: tiploc_suffix,
                 scheduled_departure_time: String::from_utf8_lossy(scheduled_departure_time),
                 public_departure: String::from_utf8_lossy(public_departure),
                 platform: String::from_utf8_lossy(platform),
@@ -53,7 +60,7 @@ mod test {
 
     #[test]
     fn should_parse_location_origin() {
-        let p = parse_location_origin::<VerboseError<_>>();
+        let p = parse_location_origin();
         let i = b"LOCHRX    0015 00156  FL     TB                                                 ";
         assert_eq!(80, i.len());
         let (rest, val) = p(i).expect("parse");
@@ -62,7 +69,8 @@ mod test {
             (val, &*rest),
             (
                 LocationOrigin {
-                    tiploc: "CHRX    ".into(),
+                    tiploc: Tiploc::from("CHRX"),
+                    tiploc_suffix: None,
                     scheduled_departure_time: "0015 ".into(),
                     public_departure: "0015".into(),
                     platform: "6  ".into(),

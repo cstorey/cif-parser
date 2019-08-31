@@ -26,3 +26,9 @@ impl fmt::Debug for Tiploc<'_> {
         fmt.debug_tuple("Tiploc").field(&self.0).finish()
     }
 }
+
+impl<'a> From<&'a str> for Tiploc<'a> {
+    fn from(tl: &'a str) -> Self {
+        Tiploc(tl)
+    }
+}
