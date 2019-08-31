@@ -1,5 +1,3 @@
-use std::borrow::Cow;
-
 use nom::{
     branch::alt, bytes::streaming::*, character::is_space, character::streaming::*,
     combinator::map, IResult,
@@ -16,15 +14,15 @@ pub enum FullOrUpdate {
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Header<'a> {
-    pub file_mainframe_identity: Cow<'a, str>,
-    pub extract_date: Cow<'a, str>,
-    pub extract_time: Cow<'a, str>,
-    pub current_file: Cow<'a, str>,
-    pub last_file: Option<Cow<'a, str>>,
+    pub file_mainframe_identity: &'a str,
+    pub extract_date: &'a str,
+    pub extract_time: &'a str,
+    pub current_file: &'a str,
+    pub last_file: Option<&'a str>,
     pub update_indicator: FullOrUpdate,
-    pub version: Cow<'a, str>,
-    pub user_start_date: Cow<'a, str>,
-    pub user_end_date: Cow<'a, str>,
+    pub version: &'a str,
+    pub user_start_date: &'a str,
+    pub user_end_date: &'a str,
 }
 
 pub(super) fn parse_header<'a>() -> impl Fn(&'a [u8]) -> IResult<&'a [u8], Header, CIFParseError> {
@@ -47,15 +45,15 @@ pub(super) fn parse_header<'a>() -> impl Fn(&'a [u8]) -> IResult<&'a [u8], Heade
         Ok((
             i,
             Header {
-                file_mainframe_identity: file_mainframe_identity.into(),
-                extract_date: extract_date.into(),
-                extract_time: extract_time.into(),
-                current_file: current_file.into(),
-                last_file: last_file.map(Into::into),
+                file_mainframe_identity: file_mainframe_identity,
+                extract_date: extract_date,
+                extract_time: extract_time,
+                current_file: current_file,
+                last_file: last_file,
                 update_indicator: update_indicator,
-                version: version.into(),
-                user_start_date: user_start_date.into(),
-                user_end_date: user_end_date.into(),
+                version: version,
+                user_start_date: user_start_date,
+                user_end_date: user_end_date,
             },
         ))
     }
