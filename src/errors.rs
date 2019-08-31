@@ -15,6 +15,16 @@ pub enum CIFParseError<'a> {
     InvalidTime(&'a [u8]),
 }
 
+impl<'a> CIFParseError<'a> {
+    pub(crate) fn into_unrecoverable<E>(e: E) -> nom::Err<Self>
+    where
+        Self: From<E>,
+    {
+        let e: Self = e.into();
+        nom::Err::Failure(e)
+    }
+}
+
 impl fmt::Display for CIFParseError<'_> {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
