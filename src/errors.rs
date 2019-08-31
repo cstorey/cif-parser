@@ -11,6 +11,7 @@ pub enum CIFParseError<'a> {
     NomVerbose(VerboseError<&'a [u8]>),
     Utf8(std::str::Utf8Error),
     MandatoryFieldMissing(&'a [u8]),
+    InvalidNumber(lexical_core::Error),
 }
 
 impl fmt::Display for CIFParseError<'_> {
@@ -41,6 +42,7 @@ impl fmt::Display for CIFParseError<'_> {
                     if s.len() < SNIPPET_LEN { "" } else { "…" }
                 )
             }
+            &CIFParseError::InvalidNumber(e) => writeln!(fmt, "Invalid number: {:?}", e),
         }
     }
 }
@@ -64,6 +66,9 @@ impl<'a> nom::error::ParseError<&'a [u8]> for CIFParseError<'a> {
             CIFParseError::MandatoryFieldMissing(_) => {
                 unimplemented!("CIFParseError::append: MandatoryFieldMissing")
             }
+            CIFParseError::InvalidNumber(e) => {
+                unimplemented!("CIFParseError::append: InvalidNumber: {:?}", e)
+            }
         }
     }
 }
@@ -73,5 +78,10 @@ impl<A: smallvec::Array<Item = u8>> std::convert::From<smallstr::FromUtf8Error<A
 {
     fn from(e: smallstr::FromUtf8Error<A>) -> Self {
         CIFParseError::Utf8(e.utf8_error())
+    }
+}
+impl std::convert::From<lexical_core::Error> for CIFParseError<'_> {
+    fn from(e: lexical_core::Error) -> Self {
+        CIFParseError::InvalidNumber(e)
     }
 }

@@ -1,10 +1,12 @@
+use chrono::Date;
+use chrono_tz::Tz;
 use nom::{
     branch::alt, bytes::streaming::*, character::is_space, character::streaming::*,
     combinator::map, IResult,
 };
 
 use crate::errors::CIFParseError;
-use crate::helpers::{mandatory, string};
+use crate::helpers::{date, mandatory, string};
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum FullOrUpdate {
@@ -15,21 +17,21 @@ pub enum FullOrUpdate {
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Header<'a> {
     pub file_mainframe_identity: &'a str,
-    pub extract_date: &'a str,
+    pub extract_date: Date<Tz>,
     pub extract_time: &'a str,
     pub current_file: &'a str,
     pub last_file: Option<&'a str>,
     pub update_indicator: FullOrUpdate,
     pub version: &'a str,
-    pub user_start_date: &'a str,
-    pub user_end_date: &'a str,
+    pub user_start_date: Date<Tz>,
+    pub user_end_date: Date<Tz>,
 }
 
 pub(super) fn parse_header<'a>() -> impl Fn(&'a [u8]) -> IResult<&'a [u8], Header, CIFParseError> {
     |i: &'a [u8]| -> IResult<&'a [u8], Header, CIFParseError> {
         let (i, _) = tag("HD")(i)?;
         let (i, file_mainframe_identity) = mandatory(string(20usize))(i)?;
-        let (i, extract_date) = mandatory(string(6usize))(i)?;
+        let (i, extract_date) = date()(i)?;
         let (i, extract_time) = mandatory(string(4usize))(i)?;
         let (i, current_file) = mandatory(string(7usize))(i)?;
         let (i, last_file) = string(7usize)(i)?;
@@ -38,8 +40,8 @@ pub(super) fn parse_header<'a>() -> impl Fn(&'a [u8]) -> IResult<&'a [u8], Heade
             map(char('F'), |_| FullOrUpdate::Full),
         ))(i)?;
         let (i, version) = mandatory(string(1usize))(i)?;
-        let (i, user_start_date) = mandatory(string(6usize))(i)?;
-        let (i, user_end_date) = mandatory(string(6usize))(i)?;
+        let (i, user_start_date) = date()(i)?;
+        let (i, user_end_date) = date()(i)?;
         let (i, _spare) = take_while_m_n(20, 20, is_space)(i)?;
 
         Ok((

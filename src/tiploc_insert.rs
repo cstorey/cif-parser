@@ -1,6 +1,5 @@
 use std::borrow::Cow;
 
-use log::*;
 use nom::{bytes::streaming::*, IResult};
 
 use crate::errors::CIFParseError;
@@ -21,11 +20,6 @@ pub struct TiplocInsert<'a> {
 pub(super) fn parse_tiploc_insert<'a>(
 ) -> impl Fn(&'a [u8]) -> IResult<&'a [u8], TiplocInsert, CIFParseError> {
     |i: &'a [u8]| -> IResult<&'a [u8], TiplocInsert, CIFParseError> {
-        trace!(
-            "Parsing: {:?}{}",
-            String::from_utf8_lossy(&i[..std::cmp::min(i.len(), 160)]),
-            if i.len() > 160 { "…" } else { "" }
-        );
         let (i, _) = tag("TI")(i)?;
         let (i, tiploc) = Tiploc::parse(i)?;
         let (i, _) = string(2usize)(i)?; // `capitals`
@@ -33,12 +27,6 @@ pub(super) fn parse_tiploc_insert<'a>(
         let (i, nlc_check) = mandatory(string(1usize))(i)?;
         let (i, tps_description) = mandatory(string(26usize))(i)?;
         let (i, stanox) = mandatory(string(5usize))(i)?;
-        trace!(
-            "Parsing: {:?}{}",
-            String::from_utf8_lossy(&i[..std::cmp::min(i.len(), 80)]),
-            if i.len() > 80 { "…" } else { "" }
-        );
-
         let (i, _po_code) = string(4usize)(i)?;
         let (i, crs) = string(3usize)(i)?;
         let (i, nlc_desc) = string(16usize)(i)?;

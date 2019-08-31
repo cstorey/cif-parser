@@ -1,4 +1,8 @@
-use nom::{bytes::streaming::*, IResult};
+use chrono::offset::TimeZone;
+use chrono::Date;
+use chrono_tz::{Europe::London, Tz};
+use lexical_core;
+use nom::{bytes::streaming::*, character::is_digit, IResult};
 
 use crate::errors::CIFParseError;
 
@@ -27,8 +31,31 @@ pub fn mandatory<'a, T>(
     }
 }
 
+pub fn date<'a>() -> impl Fn(&'a [u8]) -> IResult<&'a [u8], Date<Tz>, CIFParseError> {
+    move |i: &'a [u8]| -> IResult<&'a [u8], Date<Tz>, CIFParseError> {
+        let (i, dd) = take_while_m_n(2usize, 2, is_digit)(i)?;
+        let (i, mm) = take_while_m_n(2usize, 2, is_digit)(i)?;
+        let (i, yy) = take_while_m_n(2usize, 2, is_digit)(i)?;
+        let dt = London.ymd(
+            lexical_core::atoi32(yy).map_err(into_nom_wrapped)? + 2000,
+            lexical_core::atou32(mm).map_err(into_nom_wrapped)?,
+            lexical_core::atou32(dd).map_err(into_nom_wrapped)?,
+        );
+        Ok((i, dt))
+    }
+}
+
+fn into_nom_wrapped<'a, E>(e: E) -> nom::Err<CIFParseError<'a>>
+where
+    CIFParseError<'a>: From<E>,
+{
+    let e: CIFParseError = e.into();
+    nom::Err::Error(e)
+}
+
 #[cfg(test)]
 mod test {
+
     use super::*;
 
     #[test]
@@ -70,6 +97,13 @@ mod test {
         let p = mandatory(inner);
         let (rest, result) = p(b"Hi").expect("parse");
         assert_eq!((rest, result), (b"Hi" as &[u8], ()));
+    }
+
+    #[test]
+    fn date_should_parse_ddmmyy() {
+        let s = b"060315!!";
+        let (rest, result) = date()(s).expect("parse");
+        assert_eq!((rest, result), (b"!!" as &[u8], London.ymd(2015, 3, 6)));
     }
 
 }

@@ -14,6 +14,9 @@ env_logger = "0.6.2"
 
 smallstr = "0.1.0"
 smallvec = "0.6.10"
+chrono = "0.4.7"
+lexical-core = "0.5.0"
+chrono-tz = "0.5.1"
 
 [profile.release]
 debug = true
