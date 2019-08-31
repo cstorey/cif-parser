@@ -1,4 +1,3 @@
-#![cfg(test)]
 use nom::{bytes::streaming::*, error::*, IResult};
 
 pub fn string<'a, E: ParseError<&'a [u8]>>(
