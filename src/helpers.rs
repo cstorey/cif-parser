@@ -55,6 +55,20 @@ pub fn date_ddmmyy<'a>() -> impl Fn(&'a [u8]) -> IResult<&'a [u8], Date<Tz>, CIF
     }
 }
 
+pub fn date_yymmdd<'a>() -> impl Fn(&'a [u8]) -> IResult<&'a [u8], Date<Tz>, CIFParseError> {
+    move |i: &'a [u8]| -> IResult<&'a [u8], Date<Tz>, CIFParseError> {
+        let (i, yy) = take_while_m_n(2usize, 2, is_digit)(i)?;
+        let (i, mm) = take_while_m_n(2usize, 2, is_digit)(i)?;
+        let (i, dd) = take_while_m_n(2usize, 2, is_digit)(i)?;
+        let dt = London.ymd(
+            lexical_core::atoi32(yy).map_err(into_nom_wrapped)? + 2000,
+            lexical_core::atou32(mm).map_err(into_nom_wrapped)?,
+            lexical_core::atou32(dd).map_err(into_nom_wrapped)?,
+        );
+        Ok((i, dt))
+    }
+}
+
 pub fn time<'a>() -> impl Fn(&'a [u8]) -> IResult<&'a [u8], NaiveTime, CIFParseError> {
     move |i: &'a [u8]| -> IResult<&'a [u8], NaiveTime, CIFParseError> {
         let start = i;
@@ -150,6 +164,12 @@ mod test {
     fn date_should_parse_ddmmyy() {
         let s = b"060315!!";
         let (rest, result) = date_ddmmyy()(s).expect("parse");
+        assert_eq!((rest, result), (b"!!" as &[u8], London.ymd(2015, 3, 6)));
+    }
+    #[test]
+    fn date_should_parse_yymmdd() {
+        let s = b"150306!!";
+        let (rest, result) = date_yymmdd()(s).expect("parse");
         assert_eq!((rest, result), (b"!!" as &[u8], London.ymd(2015, 3, 6)));
     }
 
