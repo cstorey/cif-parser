@@ -74,11 +74,7 @@ pub fn time<'a>() -> impl Fn(&'a [u8]) -> IResult<&'a [u8], NaiveTime, CIFParseE
         let start = i;
         let (i, hh) = take_while_m_n(2usize, 2, is_digit)(i)?;
         let (i, mm) = take_while_m_n(2usize, 2, is_digit)(i)?;
-        eprintln!(
-            "Parsing time: {}:{}",
-            lexical_core::atou32(hh).map_err(into_nom_wrapped)?,
-            lexical_core::atou32(mm).map_err(into_nom_wrapped)?,
-        );
+
         let dt = NaiveTime::from_hms_opt(
             lexical_core::atou32(hh).map_err(into_nom_wrapped)?,
             lexical_core::atou32(mm).map_err(into_nom_wrapped)?,
