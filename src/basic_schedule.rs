@@ -25,7 +25,7 @@ pub struct BasicSchedule<'a> {
     pub identity: Option<&'a str>,
     pub headcode: Option<&'a str>,
     pub service_code: Option<&'a str>,
-    pub speed: &'a str,
+    pub speed: Option<&'a str>,
     pub seating_class: Option<&'a str>,
     pub sleepers: Option<&'a str>,
     pub reservations: Option<&'a str>,
@@ -65,9 +65,9 @@ pub(super) fn parse_basic_schedule<'a>(
         let (i, _course_indicator) = string(1usize)(i)?;
         let (i, service_code) = string(8usize)(i)?;
         let (i, _portion_id) = string(1usize)(i)?;
-        let (i, _power_type) = mandatory_str("_power_type", 3usize)(i)?;
+        let (i, _power_type) = string(3usize)(i)?;
         let (i, _timing_load) = string(4usize)(i)?;
-        let (i, speed) = mandatory_str("speed", 3usize)(i)?;
+        let (i, speed) = string(3usize)(i)?;
         let (i, _operating_characteristics) = string(6usize)(i)?;
         let (i, seating_class) = string(1usize)(i)?;
         let (i, sleepers) = string(1usize)(i)?;
@@ -223,7 +223,7 @@ ZZ";
                 identity: "2Y16".into(),
                 headcode: None,
                 service_code: "22214000".into(),
-                speed: "075",
+                speed: "075".into(),
                 seating_class: None,
                 sleepers: None,
                 reservations: None,
@@ -253,7 +253,38 @@ ZZ";
                 identity: None,
                 headcode: None,
                 service_code: None,
-                speed: "060",
+                speed: "060".into(),
+                seating_class: None,
+                sleepers: None,
+                reservations: None,
+                catering: None,
+                branding: None,
+                stp: STP::Permanent
+            },
+        )
+    }
+    //
+    #[test]
+    fn should_parse_c02189() {
+        let i = b"BSNC021891905191912080000001 BBS0B00    122180008                              P";
+        let p = parse_basic_schedule();
+        let (rest, val) = p(i).expect("parse");
+        assert_eq!(String::from_utf8_lossy(rest), "");
+        assert_eq!(
+            val,
+            BasicSchedule {
+                transaction_type: TransactionType::New,
+                uid: "C02189",
+                start_date: London.ymd(2019, 5, 19),
+                end_date: London.ymd(2019, 12, 8),
+                days: "0000001",
+                bank_holiday: None,
+                status: "B",
+                category: Some("BS"),
+                identity: Some("0B00"),
+                headcode: None,
+                service_code: Some("22180008"),
+                speed: None,
                 seating_class: None,
                 sleepers: None,
                 reservations: None,
