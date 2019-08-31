@@ -111,7 +111,7 @@ LTGRVPK   0009 00091     TF                                                     
                     stp: STP::Permanent,
                 },
                 extra: Some(ScheduleExtra {
-                    uic_code: "     ".into(),
+                    uic_code: None,
                     atoc_code: "SE".into(),
                     applicable_timetable_code: "Y".into(),
                 }),
