@@ -6,7 +6,7 @@ use nom::{
 };
 
 use crate::errors::CIFParseError;
-use crate::helpers::{date, mandatory, string, time};
+use crate::helpers::{date, mandatory_str, string, time};
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum FullOrUpdate {
@@ -17,6 +17,8 @@ pub enum FullOrUpdate {
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Header<'a> {
     pub file_mainframe_identity: &'a str,
+    // Thanks to DST shenanigans, we need to do our own handling of
+    // times.
     pub extracted_date: Date<Tz>,
     pub extracted_time: NaiveTime,
     pub current_file: &'a str,
@@ -30,16 +32,16 @@ pub struct Header<'a> {
 pub(super) fn parse_header<'a>() -> impl Fn(&'a [u8]) -> IResult<&'a [u8], Header, CIFParseError> {
     |i: &'a [u8]| -> IResult<&'a [u8], Header, CIFParseError> {
         let (i, _) = tag("HD")(i)?;
-        let (i, file_mainframe_identity) = mandatory(string(20usize))(i)?;
+        let (i, file_mainframe_identity) = mandatory_str(20usize)(i)?;
         let (i, extract_date) = date()(i)?;
         let (i, extract_time) = time()(i)?;
-        let (i, current_file) = mandatory(string(7usize))(i)?;
+        let (i, current_file) = mandatory_str(7usize)(i)?;
         let (i, last_file) = string(7usize)(i)?;
         let (i, update_indicator) = alt((
             map(char('U'), |_| FullOrUpdate::Update),
             map(char('F'), |_| FullOrUpdate::Full),
         ))(i)?;
-        let (i, version) = mandatory(string(1usize))(i)?;
+        let (i, version) = mandatory_str(1usize)(i)?;
         let (i, user_start_date) = date()(i)?;
         let (i, user_end_date) = date()(i)?;
         let (i, _spare) = take_while_m_n(20, 20, is_space)(i)?;

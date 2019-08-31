@@ -31,6 +31,12 @@ pub fn mandatory<'a, T>(
     }
 }
 
+pub fn mandatory_str<'a>(
+    nchars: usize,
+) -> impl Fn(&'a [u8]) -> IResult<&'a [u8], &'a str, CIFParseError> {
+    mandatory(string(nchars))
+}
+
 pub fn date<'a>() -> impl Fn(&'a [u8]) -> IResult<&'a [u8], Date<Tz>, CIFParseError> {
     move |i: &'a [u8]| -> IResult<&'a [u8], Date<Tz>, CIFParseError> {
         let (i, dd) = take_while_m_n(2usize, 2, is_digit)(i)?;
