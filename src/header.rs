@@ -5,7 +5,7 @@ use nom::{
     combinator::map, error::*, IResult,
 };
 
-use crate::helpers::{mandatory,string};
+use crate::helpers::{mandatory, string};
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum FullOrUpdate {

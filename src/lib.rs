@@ -1,10 +1,11 @@
 use nom::{
-    branch::alt, character::streaming::*, combinator::map, error::*, sequence::terminated, IResult,
+    branch::alt, character::streaming::*, combinator::map, sequence::terminated, IResult,
 };
 
 mod association;
 mod basic_schedule;
 mod change_en_route;
+mod errors;
 mod header;
 mod helpers;
 mod location_intermediate;
@@ -20,6 +21,7 @@ mod trailer;
 pub use association::Association;
 pub use basic_schedule::BasicSchedule;
 pub use change_en_route::ChangeEnRoute;
+pub use errors::CIFParseError;
 pub use header::Header;
 pub use location_intermediate::LocationIntermediate;
 pub use location_origin::LocationOrigin;
@@ -57,9 +59,7 @@ pub enum STP {
     Permanent,
 }
 
-pub fn parse<'a, E: ParseError<&'a [u8]> + std::fmt::Debug>(
-    i: &'a [u8],
-) -> IResult<&'a [u8], Record, E> {
+pub fn parse<'a>(i: &'a [u8]) -> IResult<&'a [u8], Record, CIFParseError> {
     let p = alt((
         map(header::parse_header(), Record::Header),
         map(tiploc_insert::parse_tiploc_insert(), Record::TiplocInsert),

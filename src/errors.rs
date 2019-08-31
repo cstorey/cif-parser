@@ -1,9 +1,9 @@
 use std::fmt;
 
-use failure_derive::*;
+use failure::Fail;
+use log::*;
 use nom::error::*;
 use smallvec;
-use log::*;
 
 const SNIPPET_LEN: usize = 240;
 
@@ -15,7 +15,6 @@ pub enum CIFParseError {
 
 impl fmt::Display for CIFParseError {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-
         match self {
             &CIFParseError::NomVerbose(ref err) => {
                 writeln!(fmt, "NomError: ")?;
@@ -31,9 +30,7 @@ impl fmt::Display for CIFParseError {
                 }
                 Ok(())
             }
-            &CIFParseError::Utf8(ref err) => {
-                writeln!(fmt, "UTF conversion: {}", err)
-            }
+            &CIFParseError::Utf8(ref err) => writeln!(fmt, "UTF conversion: {}", err),
         }
     }
 }
@@ -41,7 +38,7 @@ impl fmt::Display for CIFParseError {
 impl nom::error::ParseError<&[u8]> for CIFParseError {
     fn from_error_kind(i: &[u8], kind: nom::error::ErrorKind) -> Self {
         let s = String::from_utf8_lossy(i);
-        let len = std::cmp::min(s.len(), SNIPPET_LEN+1);
+        let len = std::cmp::min(s.len(), SNIPPET_LEN + 1);
 
         let vb = VerboseError::from_error_kind(s[..len].to_string(), kind);
         CIFParseError::NomVerbose(vb)
@@ -54,8 +51,8 @@ impl nom::error::ParseError<&[u8]> for CIFParseError {
 
                 let vb = VerboseError::append(s.into_owned(), kind, vb);
                 CIFParseError::NomVerbose(vb)
-            },
-            e@CIFParseError::Utf8(_) => {
+            }
+            e @ CIFParseError::Utf8(_) => {
                 warn!("Dropping UTF error: {}", e);
                 Self::from_error_kind(i, kind)
             }
@@ -63,7 +60,9 @@ impl nom::error::ParseError<&[u8]> for CIFParseError {
     }
 }
 
-impl<A: smallvec::Array<Item=u8>> std::convert::From<smallstr::FromUtf8Error<A>> for CIFParseError {
+impl<A: smallvec::Array<Item = u8>> std::convert::From<smallstr::FromUtf8Error<A>>
+    for CIFParseError
+{
     fn from(e: smallstr::FromUtf8Error<A>) -> Self {
         CIFParseError::Utf8(e.utf8_error())
     }
