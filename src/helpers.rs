@@ -1,9 +1,12 @@
 use bitflags::bitflags;
 use chrono::offset::TimeZone;
-use chrono::{Date, NaiveTime};
+use chrono::{Date, Duration, NaiveTime};
 use chrono_tz::{Europe::London, Tz};
 use lexical_core;
-use nom::{bytes::streaming::*, character::is_digit, IResult};
+use nom::{
+    branch::alt, bytes::streaming::*, character::is_digit, character::streaming::char,
+    combinator::map, IResult,
+};
 
 use crate::errors::CIFParseError;
 
@@ -96,6 +99,18 @@ pub fn time<'a>() -> impl Fn(&'a [u8]) -> IResult<&'a [u8], NaiveTime, CIFParseE
         .ok_or_else(|| CIFParseError::InvalidTime(start))
         .map_err(CIFParseError::into_unrecoverable)?;
         Ok((i, dt))
+    }
+}
+pub fn time_half<'a>() -> impl Fn(&'a [u8]) -> IResult<&'a [u8], NaiveTime, CIFParseError> {
+    let time_p = time();
+    move |i: &'a [u8]| -> IResult<&'a [u8], NaiveTime, CIFParseError> {
+        let (i, t) = time_p(i)?;
+        let (i, seconds) = alt((
+            map(char(' '), |_| Duration::seconds(0)),
+            map(char('H'), |_| Duration::seconds(30)),
+        ))(i)?;
+
+        Ok((i, t + seconds))
     }
 }
 
@@ -208,6 +223,25 @@ mod test {
         assert_eq!(
             (rest, result),
             (b"!!" as &[u8], NaiveTime::from_hms(21, 51, 0))
+        );
+    }
+
+    #[test]
+    fn time_half_should_parse_hhmm_as_start() {
+        let s = b"2151 ";
+        let (rest, result) = time_half()(s).expect("parse");
+        assert_eq!(
+            (rest, result),
+            (b"" as &[u8], NaiveTime::from_hms(21, 51, 0))
+        );
+    }
+    #[test]
+    fn time_half_should_parse_hhmmh_as_half_minute() {
+        let s = b"2151H";
+        let (rest, result) = time_half()(s).expect("parse");
+        assert_eq!(
+            (rest, result),
+            (b"" as &[u8], NaiveTime::from_hms(21, 51, 30))
         );
     }
 

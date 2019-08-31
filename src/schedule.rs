@@ -69,7 +69,7 @@ pub(super) fn parse_schedule<'a>() -> impl Fn(&'a [u8]) -> IResult<&'a [u8], Sch
 
 #[cfg(test)]
 mod test {
-    use chrono::offset::TimeZone;
+    use chrono::{offset::TimeZone, NaiveTime};
     use chrono_tz::Europe::London;
 
     use super::*;
@@ -119,8 +119,8 @@ LTGRVPK   0009 00091     TF                                                     
                 origin: Some(LocationOrigin {
                     tiploc: "BROMLYN".into(),
                     tiploc_suffix: None,
-                    scheduled_departure_time: "0004 ".into(),
-                    public_departure: "0004".into(),
+                    scheduled_departure_time: NaiveTime::from_hms(0, 4, 0),
+                    public_departure: NaiveTime::from_hms(0, 4, 0),
                     platform: "1  ".into(),
                     line: "   ".into(),
                     eng_allowance: "  ".into(),

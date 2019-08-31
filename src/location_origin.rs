@@ -1,17 +1,18 @@
 use std::borrow::Cow;
 
+use chrono::NaiveTime;
 use nom::{bytes::streaming::*, character::is_space, IResult};
 
-use crate::helpers::*;
 use crate::errors::CIFParseError;
+use crate::helpers::*;
 use crate::tiploc::*;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct LocationOrigin<'a> {
     pub tiploc: Tiploc<'a>,
     pub tiploc_suffix: Option<&'a str>,
-    pub scheduled_departure_time: Cow<'a, str>,
-    pub public_departure: Cow<'a, str>,
+    pub scheduled_departure_time: NaiveTime,
+    pub public_departure: NaiveTime,
     pub platform: Cow<'a, str>,
     pub line: Cow<'a, str>,
     pub eng_allowance: Cow<'a, str>,
@@ -26,8 +27,8 @@ pub(super) fn parse_location_origin<'a>(
         let (i, _) = tag("LO")(i)?; // 1-2
         let (i, tiploc) = Tiploc::parse(i)?; // 3-9
         let (i, tiploc_suffix) = string(1)(i)?; // 9-10
-        let (i, scheduled_departure_time) = take(5usize)(i)?; // 11-15
-        let (i, public_departure) = take(4usize)(i)?; // 16-19
+        let (i, scheduled_departure_time) = time_half()(i)?; // 11-15
+        let (i, public_departure) = time()(i)?; // 16-19
         let (i, platform) = take(3usize)(i)?; // 20-22
         let (i, line) = take(3usize)(i)?; // 23-25
         let (i, eng_allowance) = take(2usize)(i)?;
@@ -41,8 +42,8 @@ pub(super) fn parse_location_origin<'a>(
             LocationOrigin {
                 tiploc: tiploc,
                 tiploc_suffix: tiploc_suffix,
-                scheduled_departure_time: String::from_utf8_lossy(scheduled_departure_time),
-                public_departure: String::from_utf8_lossy(public_departure),
+                scheduled_departure_time: scheduled_departure_time,
+                public_departure: public_departure,
                 platform: String::from_utf8_lossy(platform),
                 line: String::from_utf8_lossy(line),
                 eng_allowance: String::from_utf8_lossy(eng_allowance),
@@ -71,8 +72,8 @@ mod test {
                 LocationOrigin {
                     tiploc: Tiploc::from("CHRX"),
                     tiploc_suffix: None,
-                    scheduled_departure_time: "0015 ".into(),
-                    public_departure: "0015".into(),
+                    scheduled_departure_time: NaiveTime::from_hms(0, 15, 0),
+                    public_departure: NaiveTime::from_hms(0, 15, 0),
                     platform: "6  ".into(),
                     line: "FL ".into(),
                     eng_allowance: "  ".into(),
