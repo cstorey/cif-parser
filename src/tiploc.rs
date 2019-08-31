@@ -1,30 +1,28 @@
 use std::fmt;
 
-use nom::{bytes::streaming::*, error::ParseError, IResult};
-use smallvec::SmallVec;
+use nom::IResult;
+
+use crate::errors::CIFParseError;
+use crate::helpers::{mandatory, string};
 
 #[derive(Clone, Eq, PartialEq)]
-pub struct Tiploc(SmallVec<[u8; 7]>);
+pub struct Tiploc<'a>(&'a str);
 
-impl Tiploc {
-    pub fn parse<'a, E: ParseError<&'a [u8]>>(i: &'a [u8]) -> IResult<&'a [u8], Self, E> {
-        let (i, name) = take(7usize)(i)?;
-        let mut buf = [0u8; 7];
-        buf.copy_from_slice(name);
-        Ok((i, Tiploc(SmallVec::from_buf(buf))))
+impl<'a> Tiploc<'a> {
+    pub fn parse(i: &'a [u8]) -> IResult<&'a [u8], Self, CIFParseError> {
+        let (i, name) = mandatory(string(7usize))(i)?;
+        Ok((i, Tiploc(name)))
     }
 }
 
-impl std::convert::From<&str> for Tiploc {
-    fn from(s: &str) -> Self {
-        Tiploc(SmallVec::from_slice(s.as_bytes()))
+impl<'a> Tiploc<'a> {
+    pub fn from_str(s: &'a str) -> Self {
+        Tiploc(s)
     }
 }
 
-impl fmt::Debug for Tiploc {
+impl fmt::Debug for Tiploc<'_> {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        fmt.debug_tuple("Tiploc")
-            .field(&String::from_utf8_lossy(&self.0).trim_end())
-            .finish()
+        fmt.debug_tuple("Tiploc").field(&self.0).finish()
     }
 }
