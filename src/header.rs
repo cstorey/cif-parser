@@ -31,9 +31,9 @@ pub(super) fn parse_header<'a, E: ParseError<&'a [u8]>>(
     |i: &'a [u8]| -> IResult<&'a [u8], Header, E> {
         let (i, _) = tag("HD")(i)?;
         let (i, file_mainframe_identity) = mandatory(string(20usize))(i)?;
-        let (i, extract_date) = take(6usize)(i)?;
-        let (i, extract_time) = take(4usize)(i)?;
-        let (i, current_file) = take(7usize)(i)?;
+        let (i, extract_date) = mandatory(string(6usize))(i)?;
+        let (i, extract_time) = mandatory(string(4usize))(i)?;
+        let (i, current_file) = mandatory(string(7usize))(i)?;
         let (i, last_file) = take(7usize)(i)?;
         let (i, update_indicator) = alt((
             map(char('U'), |_| FullOrUpdate::Update),
@@ -48,9 +48,9 @@ pub(super) fn parse_header<'a, E: ParseError<&'a [u8]>>(
             i,
             Header {
                 file_mainframe_identity: file_mainframe_identity.into(),
-                extract_date: String::from_utf8_lossy(extract_date),
-                extract_time: String::from_utf8_lossy(extract_time),
-                current_file: String::from_utf8_lossy(current_file),
+                extract_date: extract_date.into(),
+                extract_time: extract_time.into(),
+                current_file: current_file.into(),
                 last_file: String::from_utf8_lossy(last_file),
                 update_indicator: update_indicator,
                 version: String::from_utf8_lossy(version),
