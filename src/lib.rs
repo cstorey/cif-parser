@@ -17,7 +17,7 @@ mod tiploc_insert;
 mod trailer;
 
 pub use association::Association;
-pub use basic_schedule::BasicSchedule;
+pub use basic_schedule::{BasicSchedule, ScheduleCancellation};
 pub use change_en_route::ChangeEnRoute;
 pub use errors::CIFParseError;
 pub use header::Header;
@@ -38,6 +38,7 @@ pub enum Record<'a> {
     TiplocAmend(TiplocAmend<'a>),
     Association(Association<'a>),
     Schedule(Schedule<'a>),
+    ScheduleCancellation(ScheduleCancellation<'a>),
     ChangeEnRoute(ChangeEnRoute<'a>),
     Trailer(Trailer),
 }
@@ -51,7 +52,6 @@ pub enum TransactionType {
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum STP {
-    Cancellation,
     New,
     Overlay,
     Permanent,
@@ -64,6 +64,10 @@ pub fn parse<'a>(i: &'a [u8]) -> IResult<&'a [u8], Record, CIFParseError> {
         map(tiploc_amend::parse_tiploc_amend(), Record::TiplocAmend),
         map(association::parse_association(), Record::Association),
         map(schedule::parse_schedule(), Record::Schedule),
+        map(
+            basic_schedule::parse_schedule_cancellation(),
+            Record::ScheduleCancellation,
+        ),
         map(trailer::parse_trailer(), Record::Trailer),
     ));
     terminated(p, char('\n'))(i)

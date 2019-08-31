@@ -29,6 +29,16 @@ pub struct BasicSchedule<'a> {
     pub stp: STP,
 }
 
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct ScheduleCancellation<'a> {
+    pub transaction_type: TransactionType,
+    pub uid: Cow<'a, str>,
+    pub start_date: Cow<'a, str>,
+    pub end_date: Cow<'a, str>,
+    pub days: Cow<'a, str>,
+    pub bank_holiday: Cow<'a, str>,
+}
+
 pub(super) fn parse_basic_schedule<'a, E: ParseError<&'a [u8]>>(
 ) -> impl Fn(&'a [u8]) -> IResult<&'a [u8], BasicSchedule, E> {
     |i: &'a [u8]| -> IResult<&'a [u8], BasicSchedule, E> {
@@ -62,7 +72,6 @@ pub(super) fn parse_basic_schedule<'a, E: ParseError<&'a [u8]>>(
         let (i, branding) = take(4usize)(i)?;
         let (i, _spare) = take_while_m_n(1, 1, is_space)(i)?;
         let (i, stp) = alt((
-            map(char('C'), |_| STP::Cancellation),
             map(char('N'), |_| STP::New),
             map(char('O'), |_| STP::Overlay),
             map(char('P'), |_| STP::Permanent),
@@ -89,6 +98,39 @@ pub(super) fn parse_basic_schedule<'a, E: ParseError<&'a [u8]>>(
                 catering: String::from_utf8_lossy(catering),
                 branding: String::from_utf8_lossy(branding),
                 stp: stp,
+            },
+        ))
+    }
+}
+
+pub(super) fn parse_schedule_cancellation<'a, E: ParseError<&'a [u8]>>(
+) -> impl Fn(&'a [u8]) -> IResult<&'a [u8], ScheduleCancellation, E> {
+    |i: &'a [u8]| -> IResult<&'a [u8], ScheduleCancellation, E> {
+        let (i, _) = tag("BS")(i)?;
+        let (i, ttype) = alt((
+            map(char('N'), |_| TransactionType::New),
+            map(char('D'), |_| TransactionType::Delete),
+            map(char('R'), |_| TransactionType::Revise),
+        ))(i)?;
+        let (i, uid) = take(6usize)(i)?;
+        let (i, start_date) = take(6usize)(i)?;
+        let (i, end_date) = take(6usize)(i)?;
+        let (i, days) = take(7usize)(i)?; // Bit string?
+        let (i, bank_holiday) = take(1usize)(i)?;
+        let (i, _spare) = take_while_m_n(11, 11, is_space)(i)?;
+        let (i, _course_indicator) = take(1usize)(i)?;
+        let (i, _spare) = take_while_m_n(38, 38, is_space)(i)?;
+        let (i, _stp) = tag("C")(i)?;
+
+        Ok((
+            i,
+            ScheduleCancellation {
+                transaction_type: ttype,
+                uid: String::from_utf8_lossy(uid),
+                start_date: String::from_utf8_lossy(start_date),
+                end_date: String::from_utf8_lossy(end_date),
+                days: String::from_utf8_lossy(days),
+                bank_holiday: String::from_utf8_lossy(bank_holiday),
             },
         ))
     }
@@ -126,6 +168,29 @@ mod test {
                 catering: "    ".into(),
                 branding: "    ".into(),
                 stp: STP::Overlay,
+            }
+        )
+    }
+
+    #[test]
+    fn should_parse_cancellation_schedule() {
+        let i = b"\
+BSNC670061905191907280000001            1                                      C\n\
+ZZ";
+
+        let p = parse_schedule_cancellation::<VerboseError<_>>();
+        eprintln!("{}", String::from_utf8_lossy(&[]));
+        let (rest, val) = p(i).expect("parse");
+        assert_eq!(String::from_utf8_lossy(rest), "\nZZ");
+        assert_eq!(
+            val,
+            ScheduleCancellation {
+                transaction_type: TransactionType::New,
+                uid: "C67006".into(),
+                start_date: "190519".into(),
+                end_date: "190728".into(),
+                days: "0000001".into(),
+                bank_holiday: " ".into(),
             }
         )
     }

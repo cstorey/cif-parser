@@ -151,45 +151,4 @@ LTGRVPK   0009 00091     TF                                                     
     }
     //
 
-    #[test]
-    fn should_parse_cancellation_schedule() {
-        let i = b"\
-BSNC670061905191907280000001            1                                      C\n\
-ZZ";
-
-        let p = parse_schedule::<VerboseError<_>>();
-        eprintln!("{}", String::from_utf8_lossy(&[]));
-        let (rest, val) = p(i).expect("parse");
-        assert_eq!(String::from_utf8_lossy(rest), "\nZZ");
-        assert_eq!(
-            val,
-            Schedule {
-                basic: BasicSchedule {
-                    transaction_type: TransactionType::New,
-                    uid: "C67006".into(),
-                    start_date: "190519".into(),
-                    end_date: "190728".into(),
-                    days: "0000001".into(),
-                    bank_holiday: " ".into(),
-                    status: " ".into(),
-                    category: "  ".into(),
-                    identity: "    ".into(),
-                    headcode: "    ".into(),
-                    service_code: "        ".into(),
-                    speed: "   ".into(),
-                    seating_class: " ".into(),
-                    sleepers: " ".into(),
-                    reservations: " ".into(),
-                    catering: "    ".into(),
-                    branding: "    ".into(),
-                    stp: STP::Cancellation,
-                },
-                extra: None,
-                origin: None,
-                intermediate: Vec::new(),
-                changes: Vec::new(),
-                terminal: None,
-            }
-        )
-    }
 }
