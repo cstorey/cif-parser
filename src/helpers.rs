@@ -47,9 +47,9 @@ pub fn date_ddmmyy<'a>() -> impl Fn(&'a [u8]) -> IResult<&'a [u8], Date<Tz>, CIF
         let (i, mm) = take_while_m_n(2usize, 2, is_digit)(i)?;
         let (i, yy) = take_while_m_n(2usize, 2, is_digit)(i)?;
         let dt = London.ymd(
-            lexical_core::atoi32(yy).map_err(into_nom_wrapped)? + 2000,
-            lexical_core::atou32(mm).map_err(into_nom_wrapped)?,
-            lexical_core::atou32(dd).map_err(into_nom_wrapped)?,
+            lexical_core::atoi32(yy).map_err(into_unrecoverable)? + 2000,
+            lexical_core::atou32(mm).map_err(into_unrecoverable)?,
+            lexical_core::atou32(dd).map_err(into_unrecoverable)?,
         );
         Ok((i, dt))
     }
@@ -61,9 +61,9 @@ pub fn date_yymmdd<'a>() -> impl Fn(&'a [u8]) -> IResult<&'a [u8], Date<Tz>, CIF
         let (i, mm) = take_while_m_n(2usize, 2, is_digit)(i)?;
         let (i, dd) = take_while_m_n(2usize, 2, is_digit)(i)?;
         let dt = London.ymd(
-            lexical_core::atoi32(yy).map_err(into_nom_wrapped)? + 2000,
-            lexical_core::atou32(mm).map_err(into_nom_wrapped)?,
-            lexical_core::atou32(dd).map_err(into_nom_wrapped)?,
+            lexical_core::atoi32(yy).map_err(into_unrecoverable)? + 2000,
+            lexical_core::atou32(mm).map_err(into_unrecoverable)?,
+            lexical_core::atou32(dd).map_err(into_unrecoverable)?,
         );
         Ok((i, dt))
     }
@@ -76,22 +76,22 @@ pub fn time<'a>() -> impl Fn(&'a [u8]) -> IResult<&'a [u8], NaiveTime, CIFParseE
         let (i, mm) = take_while_m_n(2usize, 2, is_digit)(i)?;
 
         let dt = NaiveTime::from_hms_opt(
-            lexical_core::atou32(hh).map_err(into_nom_wrapped)?,
-            lexical_core::atou32(mm).map_err(into_nom_wrapped)?,
+            lexical_core::atou32(hh).map_err(into_unrecoverable)?,
+            lexical_core::atou32(mm).map_err(into_unrecoverable)?,
             0,
         )
         .ok_or_else(|| CIFParseError::InvalidTime(start))
-        .map_err(into_nom_wrapped)?;
+        .map_err(into_unrecoverable)?;
         Ok((i, dt))
     }
 }
 
-fn into_nom_wrapped<'a, E>(e: E) -> nom::Err<CIFParseError<'a>>
+fn into_unrecoverable<'a, E>(e: E) -> nom::Err<CIFParseError<'a>>
 where
     CIFParseError<'a>: From<E>,
 {
     let e: CIFParseError = e.into();
-    nom::Err::Error(e)
+    nom::Err::Failure(e)
 }
 
 #[cfg(test)]
