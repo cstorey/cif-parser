@@ -39,10 +39,10 @@ impl fmt::Display for CIFParseError {
 
 impl nom::error::ParseError<&[u8]> for CIFParseError {
     fn from_error_kind(i: &[u8], kind: nom::error::ErrorKind) -> Self {
-        let s = String::from_utf8_lossy(i);
-        let len = std::cmp::min(s.len(), SNIPPET_LEN + 1);
+        let len = std::cmp::min(i.len(), SNIPPET_LEN + 1);
+        let s = String::from_utf8_lossy(&i[..len]);
 
-        let vb = VerboseError::from_error_kind(s[..len].to_string(), kind);
+        let vb = VerboseError::from_error_kind(s.into(), kind);
         CIFParseError::NomVerbose(vb)
     }
 
