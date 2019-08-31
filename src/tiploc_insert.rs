@@ -1,6 +1,7 @@
 use std::borrow::Cow;
 
-use nom::{bytes::streaming::*, character::is_space, IResult};
+use log::*;
+use nom::{bytes::streaming::*, IResult};
 
 use crate::errors::CIFParseError;
 use crate::helpers::*;
@@ -13,13 +14,18 @@ pub struct TiplocInsert<'a> {
     pub nlc_check: Cow<'a, str>,
     pub tps_description: Cow<'a, str>,
     pub stanox: Cow<'a, str>,
-    pub crs: Cow<'a, str>,
-    pub nlc_desc: Cow<'a, str>,
+    pub crs: Option<Cow<'a, str>>,
+    pub nlc_desc: Option<Cow<'a, str>>,
 }
 
 pub(super) fn parse_tiploc_insert<'a>(
 ) -> impl Fn(&'a [u8]) -> IResult<&'a [u8], TiplocInsert, CIFParseError> {
     |i: &'a [u8]| -> IResult<&'a [u8], TiplocInsert, CIFParseError> {
+        trace!(
+            "Parsing: {:?}{}",
+            String::from_utf8_lossy(&i[..std::cmp::min(i.len(), 160)]),
+            if i.len() > 160 { "…" } else { "" }
+        );
         let (i, _) = tag("TI")(i)?;
         let (i, tiploc) = Tiploc::parse(i)?;
         let (i, _) = string(2usize)(i)?; // `capitals`
@@ -27,10 +33,16 @@ pub(super) fn parse_tiploc_insert<'a>(
         let (i, nlc_check) = mandatory(string(1usize))(i)?;
         let (i, tps_description) = mandatory(string(26usize))(i)?;
         let (i, stanox) = mandatory(string(5usize))(i)?;
-        let (i, _po_code) = mandatory(string(4usize))(i)?;
-        let (i, crs) = mandatory(string(3usize))(i)?;
-        let (i, nlc_desc) = mandatory(string(16usize))(i)?;
-        let (i, _spare) = take_while_m_n(8, 8, is_space)(i)?;
+        trace!(
+            "Parsing: {:?}{}",
+            String::from_utf8_lossy(&i[..std::cmp::min(i.len(), 80)]),
+            if i.len() > 80 { "…" } else { "" }
+        );
+
+        let (i, _po_code) = string(4usize)(i)?;
+        let (i, crs) = string(3usize)(i)?;
+        let (i, nlc_desc) = string(16usize)(i)?;
+        let (i, _spare) = string(8)(i)?;
 
         Ok((
             i,
@@ -40,8 +52,8 @@ pub(super) fn parse_tiploc_insert<'a>(
                 nlc_check: nlc_check.into(),
                 tps_description: tps_description.into(),
                 stanox: stanox.into(),
-                crs: crs.into(),
-                nlc_desc: nlc_desc.into(),
+                crs: crs.map(Into::into),
+                nlc_desc: nlc_desc.map(Into::into),
             },
         ))
     }
@@ -67,9 +79,16 @@ mod test {
                 nlc_check: "D".into(),
                 tps_description: "BOLTON-UPON-DEARNE".into(),
                 stanox: "24011".into(),
-                crs: "BTD".into(),
-                nlc_desc: "BOLTON ON DEARNE".into(),
+                crs: Some("BTD".into()),
+                nlc_desc: Some("BOLTON ON DEARNE".into()),
             }
         )
+    }
+
+    #[test]
+    fn should_parse_example_2() {
+        let insert =
+            b"TIAACHEN 00081601LAACHEN                    00005   0                           ";
+        let _ = parse_tiploc_insert()(insert).expect("parse insert");
     }
 }

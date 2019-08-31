@@ -22,7 +22,7 @@ pub fn mandatory<'a, T>(
         match inner(i)? {
             (rest, Some(val)) => Ok((rest, val)),
 
-            (_rest, None) => Err(nom::Err::Error(CIFParseError::MandatoryFieldMissing)),
+            (_rest, None) => Err(nom::Err::Error(CIFParseError::MandatoryFieldMissing(i))),
         }
     }
 }
