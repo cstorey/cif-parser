@@ -1,20 +1,19 @@
 use std::fmt;
 
-use failure::Fail;
 use log::*;
 use nom::error::*;
 use smallvec;
 
 const SNIPPET_LEN: usize = 240;
 
-#[derive(Debug, Fail)]
-pub enum CIFParseError {
-    NomVerbose(VerboseError<String>),
+#[derive(Debug)]
+pub enum CIFParseError<'a> {
+    NomVerbose(VerboseError<&'a [u8]>),
     Utf8(std::str::Utf8Error),
     MandatoryFieldMissing,
 }
 
-impl fmt::Display for CIFParseError {
+impl fmt::Display for CIFParseError<'_> {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
             &CIFParseError::NomVerbose(ref err) => {
@@ -25,7 +24,7 @@ impl fmt::Display for CIFParseError {
                         fmt,
                         "Err: {:?}: {:?}{}",
                         kind,
-                        &s[..len],
+                        String::from_utf8_lossy(&s[..len]),
                         if s.len() < SNIPPET_LEN { "" } else { "…" }
                     )?;
                 }
@@ -37,21 +36,16 @@ impl fmt::Display for CIFParseError {
     }
 }
 
-impl nom::error::ParseError<&[u8]> for CIFParseError {
-    fn from_error_kind(i: &[u8], kind: nom::error::ErrorKind) -> Self {
-        let len = std::cmp::min(i.len(), SNIPPET_LEN + 1);
-        let s = String::from_utf8_lossy(&i[..len]);
-
-        let vb = VerboseError::from_error_kind(s.into(), kind);
+impl<'a> nom::error::ParseError<&'a [u8]> for CIFParseError<'a> {
+    fn from_error_kind(i: &'a [u8], kind: nom::error::ErrorKind) -> Self {
+        let vb = VerboseError::from_error_kind(i, kind);
         CIFParseError::NomVerbose(vb)
     }
 
-    fn append(i: &[u8], kind: nom::error::ErrorKind, other: Self) -> Self {
+    fn append(i: &'a [u8], kind: nom::error::ErrorKind, other: Self) -> Self {
         match other {
             CIFParseError::NomVerbose(vb) => {
-                let s = String::from_utf8_lossy(i);
-
-                let vb = VerboseError::append(s.into_owned(), kind, vb);
+                let vb = VerboseError::append(i, kind, vb);
                 CIFParseError::NomVerbose(vb)
             }
             e @ CIFParseError::Utf8(_) => {
@@ -66,7 +60,7 @@ impl nom::error::ParseError<&[u8]> for CIFParseError {
 }
 
 impl<A: smallvec::Array<Item = u8>> std::convert::From<smallstr::FromUtf8Error<A>>
-    for CIFParseError
+    for CIFParseError<'_>
 {
     fn from(e: smallstr::FromUtf8Error<A>) -> Self {
         CIFParseError::Utf8(e.utf8_error())
