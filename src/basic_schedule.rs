@@ -17,10 +17,10 @@ pub struct BasicSchedule<'a> {
     pub transaction_type: TransactionType,
     pub uid: &'a str,
     pub start_date: Date<Tz>,
-    pub end_date: Date<Tz>,
-    pub days: &'a str,
+    pub end_date: Option<Date<Tz>>,
+    pub days: Option<&'a str>,
     pub bank_holiday: Option<&'a str>,
-    pub status: &'a str,
+    pub status: Option<&'a str>,
     pub category: Option<&'a str>,
     pub identity: Option<&'a str>,
     pub headcode: Option<&'a str>,
@@ -55,10 +55,13 @@ pub(super) fn parse_basic_schedule<'a>(
         ))(i)?;
         let (i, uid) = mandatory_str("uid", 6usize)(i)?;
         let (i, start_date) = date_yymmdd()(i)?;
-        let (i, end_date) = date_yymmdd()(i)?;
-        let (i, days) = mandatory_str("days", 7usize)(i)?; // Bit string?
+        let (i, end_date) = alt((
+            map(date_yymmdd(), Some),
+            map(take_while_m_n(6, 6, is_space), |_| None),
+        ))(i)?;
+        let (i, days) = string(7usize)(i)?; // Bit string?
         let (i, bank_holiday) = string(1usize)(i)?;
-        let (i, status) = mandatory_str("status", 1usize)(i)?;
+        let (i, status) = string(1usize)(i)?;
         let (i, category) = string(2usize)(i)?;
         let (i, identity) = string(4usize)(i)?;
         let (i, headcode) = string(4usize)(i)?;
@@ -161,7 +164,7 @@ mod test {
                 transaction_type: TransactionType::Revise,
                 uid: "G82885".into(),
                 start_date: London.ymd(2015, 10, 19),
-                end_date: London.ymd(2015, 10, 23),
+                end_date: London.ymd(2015, 10, 23).into(),
                 days: "1100100".into(),
                 bank_holiday: None,
                 status: "P".into(),
@@ -215,10 +218,10 @@ ZZ";
                 transaction_type: TransactionType::Revise,
                 uid: "L63173",
                 start_date: London.ymd(2019, 5, 19),
-                end_date: London.ymd(2019, 9, 29),
-                days: "0000001",
+                end_date: London.ymd(2019, 9, 29).into(),
+                days: "0000001".into(),
                 bank_holiday: None,
-                status: "P",
+                status: "P".into(),
                 category: "OO".into(),
                 identity: "2Y16".into(),
                 headcode: None,
@@ -245,10 +248,10 @@ ZZ";
                 transaction_type: TransactionType::Revise,
                 uid: "H19351",
                 start_date: London.ymd(2019, 5, 20),
-                end_date: London.ymd(2019, 11, 1),
-                days: "1111100",
+                end_date: London.ymd(2019, 11, 1).into(),
+                days: "1111100".into(),
                 bank_holiday: None,
-                status: "F",
+                status: "F".into(),
                 category: None,
                 identity: None,
                 headcode: None,
@@ -276,10 +279,10 @@ ZZ";
                 transaction_type: TransactionType::New,
                 uid: "C02189",
                 start_date: London.ymd(2019, 5, 19),
-                end_date: London.ymd(2019, 12, 8),
-                days: "0000001",
+                end_date: London.ymd(2019, 12, 8).into(),
+                days: "0000001".into(),
                 bank_holiday: None,
-                status: "B",
+                status: "B".into(),
                 category: Some("BS"),
                 identity: Some("0B00"),
                 headcode: None,
@@ -291,6 +294,37 @@ ZZ";
                 catering: None,
                 branding: None,
                 stp: STP::Permanent
+            },
+        )
+    }
+
+    #[test]
+    fn should_parse_s48587() {
+        let i = b"BSDS48587190525                                                                N";
+        let p = parse_basic_schedule();
+        let (rest, val) = p(i).expect("parse");
+        assert_eq!(String::from_utf8_lossy(rest), "");
+        assert_eq!(
+            val,
+            BasicSchedule {
+                transaction_type: TransactionType::Delete,
+                uid: "S48587",
+                start_date: London.ymd(2019, 5, 25),
+                end_date: None,
+                days: None,
+                bank_holiday: None,
+                status: None,
+                category: None,
+                identity: None,
+                headcode: None,
+                service_code: None,
+                speed: None,
+                seating_class: None,
+                sleepers: None,
+                reservations: None,
+                catering: None,
+                branding: None,
+                stp: STP::New,
             },
         )
     }

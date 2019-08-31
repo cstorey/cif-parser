@@ -94,7 +94,7 @@ LTGRVPK   0009 00091     TF                                                     
                     transaction_type: TransactionType::New,
                     uid: "W03751".into(),
                     start_date: London.ymd(2019, 5, 19),
-                    end_date: London.ymd(2019, 12, 8),
+                    end_date: London.ymd(2019, 12, 8).into(),
                     days: "0000001".into(),
                     bank_holiday: None,
                     status: "P".into(),
