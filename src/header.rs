@@ -33,8 +33,8 @@ pub(super) fn parse_header<'a>() -> impl Fn(&'a [u8]) -> IResult<&'a [u8], Heade
     |i: &'a [u8]| -> IResult<&'a [u8], Header, CIFParseError> {
         let (i, _) = tag("HD")(i)?;
         let (i, file_mainframe_identity) = mandatory_str("file_mainframe_identity", 20usize)(i)?;
-        let (i, extract_date) = date_ddmmyy()(i)?;
-        let (i, extract_time) = time()(i)?;
+        let (i, extracted_date) = date_ddmmyy()(i)?;
+        let (i, extracted_time) = time()(i)?;
         let (i, current_file) = mandatory_str("current_file", 7usize)(i)?;
         let (i, last_file) = string(7usize)(i)?;
         let (i, update_indicator) = alt((
@@ -49,15 +49,15 @@ pub(super) fn parse_header<'a>() -> impl Fn(&'a [u8]) -> IResult<&'a [u8], Heade
         Ok((
             i,
             Header {
-                file_mainframe_identity: file_mainframe_identity,
-                extracted_date: extract_date,
-                extracted_time: extract_time,
-                current_file: current_file,
-                last_file: last_file,
-                update_indicator: update_indicator,
-                version: version,
-                user_start_date: user_start_date,
-                user_end_date: user_end_date,
+                file_mainframe_identity,
+                extracted_date,
+                extracted_time,
+                current_file,
+                last_file,
+                update_indicator,
+                version,
+                user_start_date,
+                user_end_date,
             },
         ))
     }

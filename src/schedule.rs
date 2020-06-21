@@ -93,7 +93,7 @@ LTGRVPK   0009 00091     TF                                                     
             Schedule {
                 basic: BasicSchedule {
                     transaction_type: TransactionType::New,
-                    uid: "W03751".into(),
+                    uid: "W03751",
                     start_date: London.ymd(2019, 5, 19),
                     end_date: London.ymd(2019, 12, 8).into(),
                     days: Days::SUN,
@@ -113,8 +113,8 @@ LTGRVPK   0009 00091     TF                                                     
                 },
                 extra: Some(ScheduleExtra {
                     uic_code: None,
-                    atoc_code: "SE".into(),
-                    applicable_timetable_code: "Y".into(),
+                    atoc_code: "SE",
+                    applicable_timetable_code: "Y",
                 }),
                 origin: Some(LocationOrigin {
                     tiploc: "BROMLYN".into(),
@@ -172,7 +172,7 @@ ZZ";
             Schedule {
                 basic: BasicSchedule {
                     transaction_type: TransactionType::New,
-                    uid: "C67006".into(),
+                    uid: "C67006",
                     start_date: London.ymd(2019, 5, 19),
                     end_date: Some(London.ymd(2019, 7, 28)),
                     days: Days::SUN,
