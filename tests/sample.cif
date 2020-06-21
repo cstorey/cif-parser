@@ -1,0 +1,21 @@
+HDTPS.UDFROC1.PD2006191906201947DFROC2E       FA190620190621                    
+TIAACHEN 00081601LAACHEN                    00005   0                           
+TIABCWM  00385964VABERCWMBOI                78128   0                           
+TIABDAPEN00398202VPENYWAUN BUS              00000   0XPZ                        
+TIABDARE 00398200TABERDARE                  78100   0ABAABERDARE                
+AANC01360C013632005172012060000001NPSYORK     TO                               P
+AANC01360C013632005172006210000001   YORK     T                                C
+BSNC000462005172012060000001 PEE5J11    111841820 DMUE   090                   P
+BX         NTY                                                                  
+LOHOLBSDG 0944 0000          TB                                                 
+LIESJLEDS 0948 0951      00000000   DM    OPRM                                  
+LILEEDSWJ           0952H00000000   E                                           
+LTLEEDS   0954 000012A   TF                                                     
+BSNC000462005172006210000001            1                                      C
+BSNC000902005172012060000001 PEE5H67    122974000 DMUE   090                   P
+BX         NTY                                                                  
+LOLEEDS   2011 00008D        TB                                                 
+LIMRLNJN            2014 00000000   GL                                          
+LINEVLWJN           2017 00000000                                               
+LTNEVLTMD 2021 0000      TF                                                     
+ZZ                                                                              
