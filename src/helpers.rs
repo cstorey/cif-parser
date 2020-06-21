@@ -63,9 +63,9 @@ pub fn date_ddmmyy<'a>() -> impl Fn(&'a [u8]) -> IResult<&'a [u8], Date<Tz>, CIF
         let (i, mm) = take_while_m_n(2usize, 2, is_digit)(i)?;
         let (i, yy) = take_while_m_n(2usize, 2, is_digit)(i)?;
         let dt = London.ymd(
-            lexical_core::atoi32(yy).map_err(CIFParseError::into_unrecoverable)? + 2000,
-            lexical_core::atou32(mm).map_err(CIFParseError::into_unrecoverable)?,
-            lexical_core::atou32(dd).map_err(CIFParseError::into_unrecoverable)?,
+            lexical_core::parse::<i32>(yy).map_err(CIFParseError::into_unrecoverable)? + 2000,
+            lexical_core::parse(mm).map_err(CIFParseError::into_unrecoverable)?,
+            lexical_core::parse(dd).map_err(CIFParseError::into_unrecoverable)?,
         );
         Ok((i, dt))
     }
@@ -77,9 +77,9 @@ pub fn date_yymmdd<'a>() -> impl Fn(&'a [u8]) -> IResult<&'a [u8], Date<Tz>, CIF
         let (i, mm) = take_while_m_n(2usize, 2, is_digit)(i)?;
         let (i, dd) = take_while_m_n(2usize, 2, is_digit)(i)?;
         let dt = London.ymd(
-            lexical_core::atoi32(yy).map_err(CIFParseError::into_unrecoverable)? + 2000,
-            lexical_core::atou32(mm).map_err(CIFParseError::into_unrecoverable)?,
-            lexical_core::atou32(dd).map_err(CIFParseError::into_unrecoverable)?,
+            lexical_core::parse::<i32>(yy).map_err(CIFParseError::into_unrecoverable)? + 2000,
+            lexical_core::parse(mm).map_err(CIFParseError::into_unrecoverable)?,
+            lexical_core::parse(dd).map_err(CIFParseError::into_unrecoverable)?,
         );
         Ok((i, dt))
     }
@@ -92,8 +92,8 @@ pub fn time<'a>() -> impl Fn(&'a [u8]) -> IResult<&'a [u8], NaiveTime, CIFParseE
         let (i, mm) = take_while_m_n(2usize, 2, is_digit)(i)?;
 
         let dt = NaiveTime::from_hms_opt(
-            lexical_core::atou32(hh).map_err(CIFParseError::into_unrecoverable)?,
-            lexical_core::atou32(mm).map_err(CIFParseError::into_unrecoverable)?,
+            lexical_core::parse(hh).map_err(CIFParseError::into_unrecoverable)?,
+            lexical_core::parse(mm).map_err(CIFParseError::into_unrecoverable)?,
             0,
         )
         .ok_or_else(|| CIFParseError::InvalidTime(start))
