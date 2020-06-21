@@ -16,7 +16,7 @@ impl<'a> Tiploc<'a> {
 }
 
 impl<'a> Tiploc<'a> {
-    pub fn from_str(s: &'a str) -> Self {
+    pub fn of_str(s: &'a str) -> Self {
         Tiploc(s)
     }
 }

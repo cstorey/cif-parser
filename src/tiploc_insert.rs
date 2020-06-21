@@ -60,7 +60,7 @@ mod test {
         assert_eq!(
             insert,
             TiplocInsert {
-                tiploc: Tiploc::from_str("BLTNODR"),
+                tiploc: Tiploc::of_str("BLTNODR"),
                 nlc: "853600",
                 nlc_check: "D",
                 tps_description: "BOLTON-UPON-DEARNE",
