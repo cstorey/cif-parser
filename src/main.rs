@@ -1,10 +1,9 @@
-use log::*;
-use std::fs::File;
-use std::path::PathBuf;
+use std::{fs::File, io::Read, path::PathBuf};
 
 use anyhow::{bail, Result};
-use memmap::Mmap;
-use nom::Err;
+use bytes::{BufMut, BytesMut};
+use log::*;
+use nom::{Err, Offset};
 use structopt::StructOpt;
 
 use cif_parser::{parse, Record};
@@ -19,35 +18,58 @@ fn main() -> Result<()> {
     let opts = Opts::from_args();
 
     for f in opts.files {
-        let fp = File::open(&f)?;
-        let mmap = unsafe { Mmap::map(&fp)? };
-        let mut i: &[u8] = &mmap;
+        let mut fp = File::open(&f)?;
         info!("Parsing file: {:?}", f);
-        while !i.is_empty() {
-            match parse(&i) {
-                Ok((rest, Record::Unrecognised(val))) => {
-                    i = rest;
-                    warn!("Unrecognised: {:#?}", val)
-                }
 
-                Ok((rest, val)) => {
-                    i = rest;
-                    debug!("Ok: {:#?}", val)
-                }
+        let mut buf = BytesMut::new();
+        loop {
+            let prev_start = buf.len();
+            buf.put(&[0u8; 4096] as &[u8]);
+            let nread = fp.read(&mut buf[prev_start..])?;
+            buf.truncate(prev_start + nread);
+            if nread == 0 {
+                break;
+            }
+            trace!("Read {}bytes of {}/{}", nread, &buf.len(), buf.capacity());
 
-                Err(Err::Incomplete(need)) => {
-                    error!("Needed: {:?}", need);
-                    bail!("Not enough data");
-                }
-                Err(Err::Error(err)) => {
-                    error!("Error: {}", err);
-                    bail!("Parser error");
-                }
-                Err(Err::Failure(err)) => {
-                    error!("Failure:");
-                    error!("Error: {}", err);
-                    bail!("Parser failure");
-                }
+            loop {
+                trace!("Buf len: {}; capacity: {}", buf.len(), buf.capacity());
+
+                let view_len = 96;
+                let (view, ellip) = if buf.len() < view_len {
+                    (String::from_utf8_lossy(&buf), "")
+                } else {
+                    (String::from_utf8_lossy(&buf[0..view_len]), "…")
+                };
+                trace!("Parsing: {}{}", view, ellip);
+
+                let consumed = match parse(&buf) {
+                    Ok((rest, Record::Unrecognised(val))) => {
+                        warn!("Unrecognised: {:#?}", val);
+                        buf.offset(rest)
+                    }
+
+                    Ok((rest, val)) => {
+                        debug!("Ok: {:#?}", val);
+                        buf.offset(rest)
+                    }
+
+                    Err(Err::Incomplete(need)) => {
+                        debug!("Need more: {:?}", need);
+                        break;
+                    }
+                    Err(Err::Error(err)) => {
+                        error!("Error: {}", err);
+                        bail!("Parser error");
+                    }
+                    Err(Err::Failure(err)) => {
+                        error!("Failure:");
+                        error!("Error: {}", err);
+                        bail!("Parser failure");
+                    }
+                };
+
+                let _ = buf.split_to(consumed);
             }
         }
     }

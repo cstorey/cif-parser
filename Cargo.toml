@@ -7,7 +7,6 @@ edition = "2018"
 [dependencies]
 nom = "5.0.0"
 structopt = "0.3.15"
-memmap = "0.7.0"
 log = "0.4.7"
 env_logger = "0.7.1"
 
@@ -19,6 +18,7 @@ chrono-tz = "0.5.1"
 bitflags = "1.1.0"
 anyhow = "1.0.31"
 suppositions = { git = "https://github.com/cstorey/suppositions.git" }
+bytes = "0.5.5"
 
 [profile.release]
 debug = true
