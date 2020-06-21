@@ -3,7 +3,7 @@ use log::*;
 use std::fs::File;
 use std::path::PathBuf;
 
-use failure::*;
+use anyhow::{bail, Result};
 use memmap::Mmap;
 use nom::Err;
 use structopt::StructOpt;
@@ -15,7 +15,7 @@ use cif_parser::{parse, Record};
 struct Opts {
     files: Vec<PathBuf>,
 }
-fn main() -> Fallible<()> {
+fn main() -> Result<()> {
     env_logger::init();
     let opts = Opts::from_args();
 
@@ -38,16 +38,16 @@ fn main() -> Fallible<()> {
 
                 Err(Err::Incomplete(need)) => {
                     error!("Needed: {:?}", need);
-                    return Result::Err(failure::err_msg("Not enough data"));
+                    bail!("Not enough data");
                 }
                 Err(Err::Error(err)) => {
                     error!("Error: {}", err);
-                    return Result::Err(failure::err_msg("Parser error"));
+                    bail!("Parser error");
                 }
                 Err(Err::Failure(err)) => {
                     error!("Failure:");
                     error!("Error: {}", err);
-                    return Result::Err(failure::err_msg("Parser failure"));
+                    bail!("Parser failure");
                 }
             }
         }
