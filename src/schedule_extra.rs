@@ -25,9 +25,9 @@ pub(super) fn parse_schedule_extra<'a>(
         Ok((
             i,
             ScheduleExtra {
-                uic_code: uic_code,
-                atoc_code: atoc_code,
-                applicable_timetable_code: applicable_timetable_code,
+                uic_code,
+                atoc_code,
+                applicable_timetable_code,
             },
         ))
     }
@@ -47,8 +47,8 @@ mod test {
             val,
             ScheduleExtra {
                 uic_code: None,
-                atoc_code: "SE".into(),
-                applicable_timetable_code: "Y".into(),
+                atoc_code: "SE",
+                applicable_timetable_code: "Y",
             }
         )
     }

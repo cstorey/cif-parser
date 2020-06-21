@@ -33,13 +33,13 @@ pub(super) fn parse_tiploc_insert<'a>(
         Ok((
             i,
             TiplocInsert {
-                tiploc: tiploc,
-                nlc: nlc,
-                nlc_check: nlc_check,
-                tps_description: tps_description,
-                stanox: stanox,
-                crs: crs,
-                nlc_desc: nlc_desc,
+                tiploc,
+                nlc,
+                nlc_check,
+                tps_description,
+                stanox,
+                crs,
+                nlc_desc,
             },
         ))
     }
@@ -60,13 +60,13 @@ mod test {
         assert_eq!(
             insert,
             TiplocInsert {
-                tiploc: Tiploc::from_str("BLTNODR"),
-                nlc: "853600".into(),
-                nlc_check: "D".into(),
-                tps_description: "BOLTON-UPON-DEARNE".into(),
-                stanox: "24011".into(),
-                crs: Some("BTD".into()),
-                nlc_desc: Some("BOLTON ON DEARNE".into()),
+                tiploc: Tiploc::of_str("BLTNODR"),
+                nlc: "853600",
+                nlc_check: "D",
+                tps_description: "BOLTON-UPON-DEARNE",
+                stanox: "24011",
+                crs: Some("BTD"),
+                nlc_desc: Some("BOLTON ON DEARNE"),
             }
         )
     }

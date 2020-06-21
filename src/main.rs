@@ -1,4 +1,3 @@
-use env_logger;
 use log::*;
 use std::fs::File;
 use std::path::PathBuf;
@@ -24,7 +23,7 @@ fn main() -> Fallible<()> {
         let mmap = unsafe { Mmap::map(&fp)? };
         let mut i: &[u8] = &mmap;
         info!("Parsing file: {:?}", f);
-        while i.len() > 0 {
+        while !i.is_empty() {
             match parse(&i) {
                 Ok((rest, Record::Unrecognised(val))) => {
                     i = rest;

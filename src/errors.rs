@@ -15,7 +15,7 @@ pub enum CIFParseError<'a> {
 }
 
 impl<'a> CIFParseError<'a> {
-    pub(crate) fn into_unrecoverable<E>(e: E) -> nom::Err<Self>
+    pub(crate) fn from_unrecoverable<E>(e: E) -> nom::Err<Self>
     where
         Self: From<E>,
     {
@@ -27,22 +27,22 @@ impl<'a> CIFParseError<'a> {
 impl fmt::Display for CIFParseError<'_> {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            &CIFParseError::NomVerbose(ref err) => {
+            CIFParseError::NomVerbose(ref err) => {
                 writeln!(fmt, "NomError: ")?;
                 for &(ref s, ref kind) in err.errors.iter() {
                     writeln!(fmt, "Err: {:?}: {}", kind, as_snippet(s))?;
                 }
                 Ok(())
             }
-            &CIFParseError::Utf8(ref err) => writeln!(fmt, "UTF conversion: {}", err),
-            &CIFParseError::MandatoryFieldMissing(field_name, s) => writeln!(
+            CIFParseError::Utf8(ref err) => writeln!(fmt, "UTF conversion: {}", err),
+            CIFParseError::MandatoryFieldMissing(field_name, s) => writeln!(
                 fmt,
                 "Mandatory field {} missing at: {}",
                 field_name,
                 as_snippet(s)
             ),
-            &CIFParseError::InvalidNumber(e) => writeln!(fmt, "Invalid number: {:?}", e),
-            &CIFParseError::InvalidTime(s) => writeln!(fmt, "Invalid time: {}", as_snippet(s)),
+            CIFParseError::InvalidNumber(e) => writeln!(fmt, "Invalid number: {:?}", e),
+            CIFParseError::InvalidTime(s) => writeln!(fmt, "Invalid time: {}", as_snippet(s)),
         }
     }
 }

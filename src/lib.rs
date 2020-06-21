@@ -34,6 +34,7 @@ pub use tiploc_amend::TiplocAmend;
 pub use tiploc_insert::TiplocInsert;
 pub use trailer::Trailer;
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Record<'a> {
     Header(Header<'a>),
@@ -80,7 +81,7 @@ fn parse_unrecognised<'a>() -> impl Fn(&'a [u8]) -> IResult<&'a [u8], &'a str, C
 
         Ok((
             i,
-            std::str::from_utf8(other).map_err(CIFParseError::into_unrecoverable)?,
+            std::str::from_utf8(other).map_err(CIFParseError::from_unrecoverable)?,
         ))
     }
 }

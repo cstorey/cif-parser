@@ -40,10 +40,10 @@ pub(super) fn parse_location_origin<'a>(
         Ok((
             i,
             LocationOrigin {
-                tiploc: tiploc,
-                tiploc_suffix: tiploc_suffix,
-                scheduled_departure_time: scheduled_departure_time,
-                public_departure: public_departure,
+                tiploc,
+                tiploc_suffix,
+                scheduled_departure_time,
+                public_departure,
                 platform: String::from_utf8_lossy(platform),
                 line: String::from_utf8_lossy(line),
                 eng_allowance: String::from_utf8_lossy(eng_allowance),

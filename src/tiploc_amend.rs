@@ -34,14 +34,14 @@ pub(super) fn parse_tiploc_amend<'a>(
         Ok((
             i,
             TiplocAmend {
-                tiploc: tiploc,
-                nlc: nlc,
-                nlc_check: nlc_check,
-                tps_description: tps_description,
-                stanox: stanox,
-                crs: crs,
-                nlc_desc: nlc_desc,
-                new_tiploc: new_tiploc,
+                tiploc,
+                nlc,
+                nlc_check,
+                tps_description,
+                stanox,
+                crs,
+                nlc_desc,
+                new_tiploc,
             },
         ))
     }
@@ -63,11 +63,11 @@ mod test {
         assert_eq!(
             insert,
             TiplocAmend {
-                tiploc: "MBRK942".into(),
-                nlc: "590970".into(),
-                nlc_check: "A".into(),
-                tps_description: "MILLBROOK SIG E942".into(),
-                stanox: "86536".into(),
+                tiploc: "MBRK942",
+                nlc: "590970",
+                nlc_check: "A",
+                tps_description: "MILLBROOK SIG E942",
+                stanox: "86536",
                 crs: None,
                 nlc_desc: None,
                 new_tiploc: None,
