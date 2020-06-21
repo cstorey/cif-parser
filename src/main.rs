@@ -13,26 +13,26 @@ use cif_parser::{parse, Record};
 struct Opts {
     files: Vec<PathBuf>,
 }
+
+struct ReadBuf<R> {
+    inner: R,
+    buf: BytesMut,
+}
+
 fn main() -> Result<()> {
     env_logger::init();
     let opts = Opts::from_args();
 
     for f in opts.files {
-        let mut fp = File::open(&f)?;
+        let fp = File::open(&f)?;
         info!("Parsing file: {:?}", f);
 
-        let mut buf = BytesMut::new();
-        loop {
-            let prev_start = buf.len();
-            buf.resize(prev_start + 4096, 0);
-            let nread = fp.read(&mut buf[prev_start..])?;
-            buf.truncate(prev_start + nread);
-            if nread == 0 {
-                break;
-            }
+        let mut rdr = ReadBuf::new(fp);
 
+        while rdr.refill_until_eof()? {
             loop {
-                let consumed = match parse(&buf) {
+                let buf = rdr.buf();
+                let consumed = match parse(buf) {
                     Ok((rest, Record::Unrecognised(val))) => {
                         warn!("Unrecognised: {:#?}", val);
                         buf.offset(rest)
@@ -58,7 +58,7 @@ fn main() -> Result<()> {
                     }
                 };
 
-                let _ = buf.split_to(consumed);
+                rdr.consume(consumed);
             }
         }
     }
@@ -66,4 +66,27 @@ fn main() -> Result<()> {
     info!("Done.");
 
     Ok(())
+}
+
+impl<R: Read> ReadBuf<R> {
+    fn new(inner: R) -> Self {
+        let buf = BytesMut::new();
+        ReadBuf { inner, buf }
+    }
+
+    fn refill_until_eof(&mut self) -> Result<bool> {
+        let prev_start = self.buf.len();
+        self.buf.resize(prev_start + 4096, 0);
+        let nread = self.inner.read(&mut self.buf[prev_start..])?;
+        self.buf.truncate(prev_start + nread);
+        Ok(nread > 0)
+    }
+
+    fn buf(&self) -> &[u8] {
+        &*self.buf
+    }
+
+    fn consume(&mut self, size: usize) {
+        let _ = self.buf.split_to(size);
+    }
 }
