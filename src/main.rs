@@ -1,7 +1,7 @@
 use std::{fs::File, io::Read, path::PathBuf};
 
 use anyhow::{bail, Result};
-use bytes::{BufMut, BytesMut};
+use bytes::BytesMut;
 use log::*;
 use nom::{Err, Offset};
 use structopt::StructOpt;
@@ -24,25 +24,14 @@ fn main() -> Result<()> {
         let mut buf = BytesMut::new();
         loop {
             let prev_start = buf.len();
-            buf.put(&[0u8; 4096] as &[u8]);
+            buf.resize(prev_start + 4096, 0);
             let nread = fp.read(&mut buf[prev_start..])?;
             buf.truncate(prev_start + nread);
             if nread == 0 {
                 break;
             }
-            trace!("Read {}bytes of {}/{}", nread, &buf.len(), buf.capacity());
 
             loop {
-                trace!("Buf len: {}; capacity: {}", buf.len(), buf.capacity());
-
-                let view_len = 96;
-                let (view, ellip) = if buf.len() < view_len {
-                    (String::from_utf8_lossy(&buf), "")
-                } else {
-                    (String::from_utf8_lossy(&buf[0..view_len]), "…")
-                };
-                trace!("Parsing: {}{}", view, ellip);
-
                 let consumed = match parse(&buf) {
                     Ok((rest, Record::Unrecognised(val))) => {
                         warn!("Unrecognised: {:#?}", val);
