@@ -1,4 +1,8 @@
-use std::{fs::File, io::Read, path::PathBuf};
+use std::{
+    fs::File,
+    io::{Read, Seek, SeekFrom},
+    path::PathBuf,
+};
 
 use anyhow::{bail, Result};
 use bytes::BytesMut;
@@ -19,6 +23,10 @@ struct ReadBuf<R> {
     buf: BytesMut,
 }
 
+struct Reader<R> {
+    buf: ReadBuf<R>,
+}
+
 fn main() -> Result<()> {
     env_logger::init();
     let opts = Opts::from_args();
@@ -27,39 +35,19 @@ fn main() -> Result<()> {
         let fp = File::open(&f)?;
         info!("Parsing file: {:?}", f);
 
-        let mut rdr = ReadBuf::new(fp);
+        let size = fp.metadata()?.len();
+        let mut rdr = Reader::new(ReadBuf::new(fp));
 
-        while rdr.refill_until_eof()? {
-            loop {
-                let buf = rdr.buf();
-                let consumed = match parse(buf) {
-                    Ok((rest, Record::Unrecognised(val))) => {
-                        warn!("Unrecognised: {:#?}", val);
-                        buf.offset(rest)
-                    }
-
-                    Ok((rest, val)) => {
-                        debug!("Ok: {:#?}", val);
-                        buf.offset(rest)
-                    }
-
-                    Err(Err::Incomplete(need)) => {
-                        debug!("Need more: {:?}", need);
-                        break;
-                    }
-                    Err(Err::Error(err)) => {
-                        error!("Error: {}", err);
-                        bail!("Parser error");
-                    }
-                    Err(Err::Failure(err)) => {
-                        error!("Failure:");
-                        error!("Error: {}", err);
-                        bail!("Parser failure");
-                    }
-                };
-
-                rdr.consume(consumed);
-            }
+        while let Some(()) = rdr.read_next(|r| {
+            debug!("Ok: {:#?}", r);
+        })? {
+            let off = rdr.buf.inner.seek(SeekFrom::Current(0))?;
+            debug!(
+                "{}/{}; {:.2}%",
+                off,
+                size,
+                100.0 * (off as f64) / (size as f64)
+            );
         }
     }
 
@@ -88,5 +76,48 @@ impl<R: Read> ReadBuf<R> {
 
     fn consume(&mut self, size: usize) {
         let _ = self.buf.split_to(size);
+    }
+}
+
+impl<R: Read> Reader<R> {
+    fn new(buf: ReadBuf<R>) -> Self {
+        Self { buf }
+    }
+
+    fn read_next<T>(&mut self, mut f: impl for<'a> FnMut(Record<'a>) -> T) -> Result<Option<T>> {
+        while self.buf.refill_until_eof()? {
+            loop {
+                let buf = self.buf.buf();
+                match parse(buf) {
+                    Ok((rest, Record::Unrecognised(val))) => {
+                        warn!("Unrecognised: {:#?}", val);
+                        buf.offset(rest)
+                    }
+
+                    Ok((rest, val)) => {
+                        debug!("Ok: {:#?}", val);
+                        let consumed = buf.offset(rest);
+
+                        let res = f(val);
+
+                        self.buf.consume(consumed);
+                        return Ok(Some(res));
+                    }
+
+                    Err(Err::Incomplete(need)) => {
+                        debug!("Need more: {:?}", need);
+                        break;
+                    }
+                    Err(Err::Error(err)) => {
+                        bail!("Parser error: {}", err);
+                    }
+                    Err(Err::Failure(err)) => {
+                        bail!("Parser failure: {}", err);
+                    }
+                };
+            }
+        }
+
+        Ok(None)
     }
 }
