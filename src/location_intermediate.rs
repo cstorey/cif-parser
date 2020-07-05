@@ -1,18 +1,20 @@
 use std::borrow::Cow;
 
+use chrono::NaiveTime;
 use nom::{bytes::streaming::*, character::is_space, IResult};
 
 use crate::errors::CIFParseError;
+use crate::helpers::*;
 use crate::tiploc::*;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct LocationIntermediate<'a> {
     pub tiploc: Tiploc<'a>,
-    pub scheduled_arrival_time: Cow<'a, str>,
-    pub scheduled_departure_time: Cow<'a, str>,
-    pub scheduled_pass: Cow<'a, str>,
-    pub public_arrival: Cow<'a, str>,
-    pub public_departure: Cow<'a, str>,
+    pub scheduled_arrival_time: Option<NaiveTime>,
+    pub scheduled_departure_time: Option<NaiveTime>,
+    pub scheduled_pass: Option<NaiveTime>,
+    pub public_arrival: Option<NaiveTime>,
+    pub public_departure: Option<NaiveTime>,
     pub platform: Cow<'a, str>,
     pub line: Cow<'a, str>,
     pub path: Cow<'a, str>,
@@ -28,11 +30,11 @@ pub(super) fn parse_location_intermediate<'a>(
         let (i, _) = tag("LI")(i)?;
         let (i, tiploc) = Tiploc::parse(i)?;
         let (i, _) = take(1usize)(i)?;
-        let (i, scheduled_arrival_time) = take(5usize)(i)?;
-        let (i, scheduled_departure_time) = take(5usize)(i)?;
-        let (i, scheduled_pass) = take(5usize)(i)?;
-        let (i, public_arrival) = take(4usize)(i)?;
-        let (i, public_departure) = take(4usize)(i)?;
+        let (i, scheduled_arrival_time) = opt_time_half()(i)?;
+        let (i, scheduled_departure_time) = opt_time_half()(i)?;
+        let (i, scheduled_pass) = opt_time_half()(i)?;
+        let (i, public_arrival) = opt_time()(i)?;
+        let (i, public_departure) = opt_time()(i)?;
         let (i, platform) = take(3usize)(i)?;
         let (i, line) = take(3usize)(i)?;
         let (i, path) = take(3usize)(i)?;
@@ -46,11 +48,11 @@ pub(super) fn parse_location_intermediate<'a>(
             i,
             LocationIntermediate {
                 tiploc,
-                scheduled_arrival_time: String::from_utf8_lossy(scheduled_arrival_time),
-                scheduled_departure_time: String::from_utf8_lossy(scheduled_departure_time),
-                scheduled_pass: String::from_utf8_lossy(scheduled_pass),
-                public_arrival: String::from_utf8_lossy(public_arrival),
-                public_departure: String::from_utf8_lossy(public_departure),
+                scheduled_arrival_time,
+                scheduled_departure_time,
+                scheduled_pass,
+                public_arrival,
+                public_departure,
                 platform: String::from_utf8_lossy(platform),
                 line: String::from_utf8_lossy(line),
                 path: String::from_utf8_lossy(path),
@@ -79,11 +81,11 @@ mod test {
             (
                 LocationIntermediate {
                     tiploc: "WLOE".into(),
-                    scheduled_arrival_time: "2327 ".into(),
-                    scheduled_departure_time: "2328 ".into(),
-                    scheduled_pass: "     ".into(),
-                    public_arrival: "2327".into(),
-                    public_departure: "2328".into(),
+                    scheduled_arrival_time: NaiveTime::from_hms(23, 27, 0).into(),
+                    scheduled_departure_time: NaiveTime::from_hms(23, 28, 0).into(),
+                    scheduled_pass: None,
+                    public_arrival: NaiveTime::from_hms(23, 27, 0).into(),
+                    public_departure: NaiveTime::from_hms(23, 28, 0).into(),
                     platform: "C  ".into(),
                     line: "   ".into(),
                     path: "   ".into(),
