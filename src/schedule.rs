@@ -5,12 +5,12 @@ use crate::*;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Schedule<'a> {
-    basic: BasicSchedule<'a>,
-    extra: Option<ScheduleExtra<'a>>,
-    origin: Option<LocationOrigin<'a>>,
-    intermediate: Vec<LocationIntermediate<'a>>,
-    changes: Vec<ChangeEnRoute<'a>>,
-    terminal: Option<LocationTerminating<'a>>,
+    pub basic: BasicSchedule<'a>,
+    pub extra: Option<ScheduleExtra<'a>>,
+    pub origin: Option<LocationOrigin<'a>>,
+    pub intermediate: Vec<LocationIntermediate<'a>>,
+    pub changes: Vec<ChangeEnRoute<'a>>,
+    pub terminal: Option<LocationTerminating<'a>>,
 }
 
 pub(super) fn parse_schedule<'a>() -> impl Fn(&'a [u8]) -> IResult<&'a [u8], Schedule, CIFParseError>
