@@ -1,4 +1,4 @@
-use std::fmt;
+use std::{borrow::Cow, fmt};
 
 use log::*;
 use nom::error::*;
@@ -7,11 +7,11 @@ const SNIPPET_LEN: usize = 240;
 
 #[derive(Debug)]
 pub enum CIFParseError<'a> {
-    NomVerbose(VerboseError<&'a [u8]>),
+    NomVerbose(VerboseError<Cow<'a, [u8]>>),
     Utf8(std::str::Utf8Error),
-    MandatoryFieldMissing(&'static str, &'a [u8]),
+    MandatoryFieldMissing(&'static str, Cow<'a, [u8]>),
     InvalidNumber(lexical_core::Error),
-    InvalidTime(&'a [u8]),
+    InvalidTime(Cow<'a, [u8]>),
 }
 
 impl<'a> CIFParseError<'a> {
@@ -49,14 +49,14 @@ impl fmt::Display for CIFParseError<'_> {
 
 impl<'a> nom::error::ParseError<&'a [u8]> for CIFParseError<'a> {
     fn from_error_kind(i: &'a [u8], kind: nom::error::ErrorKind) -> Self {
-        let vb = VerboseError::from_error_kind(i, kind);
+        let vb = VerboseError::from_error_kind(i.into(), kind);
         CIFParseError::NomVerbose(vb)
     }
 
     fn append(i: &'a [u8], kind: nom::error::ErrorKind, other: Self) -> Self {
         match other {
             CIFParseError::NomVerbose(vb) => {
-                let vb = VerboseError::append(i, kind, vb);
+                let vb = VerboseError::append(i.into(), kind, vb);
                 CIFParseError::NomVerbose(vb)
             }
             e @ CIFParseError::Utf8(_) => {

@@ -43,7 +43,8 @@ pub fn mandatory<'a, T>(
             (rest, Some(val)) => Ok((rest, val)),
 
             (_rest, None) => Err(nom::Err::Error(CIFParseError::MandatoryFieldMissing(
-                field_name, i,
+                field_name,
+                i.into(),
             ))),
         }
     }
@@ -95,7 +96,7 @@ pub fn time<'a>() -> impl Fn(&'a [u8]) -> IResult<&'a [u8], NaiveTime, CIFParseE
             lexical_core::parse(mm).map_err(CIFParseError::from_unrecoverable)?,
             0,
         )
-        .ok_or_else(|| CIFParseError::InvalidTime(start))
+        .ok_or_else(|| CIFParseError::InvalidTime(start.into()))
         .map_err(CIFParseError::from_unrecoverable)?;
         Ok((i, dt))
     }
