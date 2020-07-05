@@ -1,15 +1,17 @@
 use std::borrow::Cow;
 
+use chrono::NaiveTime;
 use nom::{bytes::streaming::*, character::is_space, IResult};
 
 use crate::errors::*;
+use crate::helpers::*;
 use crate::tiploc::*;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct LocationTerminating<'a> {
     pub tiploc: Tiploc<'a>,
-    pub scheduled_arrival_time: Cow<'a, str>,
-    pub public_arrival: Cow<'a, str>,
+    pub scheduled_arrival_time: NaiveTime,
+    pub public_arrival: NaiveTime,
     pub platform: Cow<'a, str>,
     pub path: Cow<'a, str>,
     pub activity: Cow<'a, str>,
@@ -21,8 +23,8 @@ pub(super) fn parse_location_terminating<'a>(
         let (i, _) = tag("LT")(i)?;
         let (i, tiploc) = Tiploc::parse(i)?;
         let (i, _) = take(1usize)(i)?;
-        let (i, scheduled_arrival_time) = take(5usize)(i)?;
-        let (i, public_arrival) = take(4usize)(i)?;
+        let (i, scheduled_arrival_time) = time_half()(i)?;
+        let (i, public_arrival) = time()(i)?;
         let (i, platform) = take(3usize)(i)?;
         let (i, path) = take(3usize)(i)?;
         let (i, activity) = take(12usize)(i)?;
@@ -32,8 +34,8 @@ pub(super) fn parse_location_terminating<'a>(
             i,
             LocationTerminating {
                 tiploc,
-                scheduled_arrival_time: String::from_utf8_lossy(scheduled_arrival_time),
-                public_arrival: String::from_utf8_lossy(public_arrival),
+                scheduled_arrival_time,
+                public_arrival,
                 platform: String::from_utf8_lossy(platform),
                 path: String::from_utf8_lossy(path),
                 activity: String::from_utf8_lossy(activity),
@@ -58,8 +60,8 @@ mod test {
             (
                 LocationTerminating {
                     tiploc: "TUNWELL".into(),
-                    scheduled_arrival_time: "0125 ".into(),
-                    public_arrival: "0127".into(),
+                    scheduled_arrival_time: NaiveTime::from_hms(1, 25, 0),
+                    public_arrival: NaiveTime::from_hms(1, 27, 0),
                     platform: "1  ".into(),
                     path: "   ".into(),
                     activity: "TF          ".into(),

@@ -146,8 +146,8 @@ LTGRVPK   0009 00091     TF                                                     
                 changes: vec![],
                 terminal: Some(LocationTerminating {
                     tiploc: "GRVPK".into(),
-                    scheduled_arrival_time: "0009 ".into(),
-                    public_arrival: "0009".into(),
+                    scheduled_arrival_time: NaiveTime::from_hms(0, 9, 0),
+                    public_arrival: NaiveTime::from_hms(0, 9, 0),
                     platform: "1  ".into(),
                     path: "   ".into(),
                     activity: "TF          ".into(),
