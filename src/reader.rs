@@ -1,11 +1,27 @@
 use std::io::Read;
 
-use anyhow::{bail, Result};
 use bytes::BytesMut;
 use log::*;
 use nom::{Err, Offset};
+use thiserror::Error;
 
-use crate::{parse, Record};
+use crate::{parse, CIFParseError, Record};
+
+#[derive(Error, Debug)]
+pub enum ReaderError {
+    #[error("I/O:")]
+    Io(#[from] std::io::Error),
+    #[error("Parsing CIF:")]
+    CIFParseError(CIFParseError<'static>),
+    #[error("UTF-8:")]
+    UTF8(std::str::Utf8Error),
+    #[error("Parsing number:")]
+    InvalidNumber(lexical_core::Error),
+    #[error("Error:")]
+    Other(String),
+}
+
+pub type ReaderResult<T> = std::result::Result<T, ReaderError>;
 
 struct ReadBuf<R> {
     inner: R,
@@ -22,7 +38,7 @@ impl<R: Read> ReadBuf<R> {
         ReadBuf { inner, buf }
     }
 
-    fn refill_until_eof(&mut self) -> Result<bool> {
+    fn refill_until_eof(&mut self) -> ReaderResult<bool> {
         let prev_start = self.buf.len();
         self.buf.resize(prev_start + 4096, 0);
         let nread = self.inner.read(&mut self.buf[prev_start..])?;
@@ -49,7 +65,7 @@ impl<R: Read> Reader<R> {
     pub fn read_next<T>(
         &mut self,
         mut f: impl for<'a> FnMut(Record<'a>) -> T,
-    ) -> Result<Option<T>> {
+    ) -> ReaderResult<Option<T>> {
         loop {
             let buf = self.buf.buf();
             match parse(buf) {
@@ -74,12 +90,8 @@ impl<R: Read> Reader<R> {
                         break;
                     }
                 }
-                Err(Err::Error(err)) => {
-                    bail!("Parser error: {}", err);
-                }
-                Err(Err::Failure(err)) => {
-                    bail!("Parser failure: {}", err);
-                }
+                Err(Err::Error(err)) => return Err(ReaderError::from(err)),
+                Err(Err::Failure(err)) => return Err(ReaderError::from(err)),
             };
         }
 
@@ -88,5 +100,15 @@ impl<R: Read> Reader<R> {
 
     pub fn get_ref(&self) -> &R {
         &self.buf.inner
+    }
+}
+
+impl From<CIFParseError<'_>> for ReaderError {
+    fn from(src: CIFParseError<'_>) -> Self {
+        match src {
+            CIFParseError::Utf8(err) => ReaderError::UTF8(err),
+            CIFParseError::InvalidNumber(err) => ReaderError::InvalidNumber(err),
+            other => ReaderError::Other(other.to_string()),
+        }
     }
 }
