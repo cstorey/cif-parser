@@ -1,10 +1,13 @@
 use std::borrow::Cow;
 
-use nom::{bytes::streaming::*, character::is_space, error::*, IResult};
+use nom::{bytes::streaming::*, character::is_space, IResult};
+
+use crate::errors::CIFParseError;
+use crate::tiploc::*;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct LocationIntermediate<'a> {
-    pub tiploc: Cow<'a, str>,
+    pub tiploc: Tiploc<'a>,
     pub scheduled_arrival_time: Cow<'a, str>,
     pub scheduled_departure_time: Cow<'a, str>,
     pub scheduled_pass: Cow<'a, str>,
@@ -19,11 +22,12 @@ pub struct LocationIntermediate<'a> {
     pub perf_allowance: Cow<'a, str>,
 }
 
-pub(super) fn parse_location_intermediate<'a, E: ParseError<&'a [u8]>>(
-) -> impl Fn(&'a [u8]) -> IResult<&'a [u8], LocationIntermediate, E> {
-    |i: &'a [u8]| -> IResult<&'a [u8], LocationIntermediate, E> {
+pub(super) fn parse_location_intermediate<'a>(
+) -> impl Fn(&'a [u8]) -> IResult<&'a [u8], LocationIntermediate, CIFParseError> {
+    |i: &'a [u8]| -> IResult<&'a [u8], LocationIntermediate, CIFParseError> {
         let (i, _) = tag("LI")(i)?;
-        let (i, tiploc) = take(8usize)(i)?;
+        let (i, tiploc) = Tiploc::parse(i)?;
+        let (i, _) = take(1usize)(i)?;
         let (i, scheduled_arrival_time) = take(5usize)(i)?;
         let (i, scheduled_departure_time) = take(5usize)(i)?;
         let (i, scheduled_pass) = take(5usize)(i)?;
@@ -41,7 +45,7 @@ pub(super) fn parse_location_intermediate<'a, E: ParseError<&'a [u8]>>(
         Ok((
             i,
             LocationIntermediate {
-                tiploc: String::from_utf8_lossy(tiploc),
+                tiploc,
                 scheduled_arrival_time: String::from_utf8_lossy(scheduled_arrival_time),
                 scheduled_departure_time: String::from_utf8_lossy(scheduled_departure_time),
                 scheduled_pass: String::from_utf8_lossy(scheduled_pass),
@@ -65,7 +69,7 @@ mod test {
 
     #[test]
     fn should_parse_location_intermediate() {
-        let p = parse_location_intermediate::<VerboseError<_>>();
+        let p = parse_location_intermediate();
         let i = b"LIWLOE    2327 2328      23272328C        T                                     ";
         assert_eq!(80, i.len());
         let (rest, val) = p(i).expect("parse");
@@ -74,7 +78,7 @@ mod test {
             (val, &*rest),
             (
                 LocationIntermediate {
-                    tiploc: "WLOE    ".into(),
+                    tiploc: "WLOE".into(),
                     scheduled_arrival_time: "2327 ".into(),
                     scheduled_departure_time: "2328 ".into(),
                     scheduled_pass: "     ".into(),

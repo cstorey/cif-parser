@@ -129,7 +129,7 @@ LTGRVPK   0009 00091     TF                                                     
                     perf_allowance: "  ".into(),
                 }),
                 intermediate: vec![LocationIntermediate {
-                    tiploc: "SNDP    ".into(),
+                    tiploc: "SNDP".into(),
                     scheduled_arrival_time: "0005H".into(),
                     scheduled_departure_time: "0006 ".into(),
                     scheduled_pass: "     ".into(),
@@ -145,7 +145,7 @@ LTGRVPK   0009 00091     TF                                                     
                 }],
                 changes: vec![],
                 terminal: Some(LocationTerminating {
-                    tiploc: "GRVPK   ".into(),
+                    tiploc: "GRVPK".into(),
                     scheduled_arrival_time: "0009 ".into(),
                     public_arrival: "0009".into(),
                     platform: "1  ".into(),
