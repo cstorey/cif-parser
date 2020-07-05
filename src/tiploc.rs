@@ -27,8 +27,20 @@ impl fmt::Debug for Tiploc<'_> {
     }
 }
 
+impl fmt::Display for Tiploc<'_> {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        write!(fmt, "{}", self.0)
+    }
+}
+
 impl<'a> From<&'a str> for Tiploc<'a> {
     fn from(tl: &'a str) -> Self {
         Tiploc(tl)
+    }
+}
+
+impl AsRef<str> for Tiploc<'_> {
+    fn as_ref(&self) -> &str {
+        &self.0
     }
 }

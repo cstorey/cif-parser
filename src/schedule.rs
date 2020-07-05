@@ -5,12 +5,12 @@ use crate::*;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Schedule<'a> {
-    basic: BasicSchedule<'a>,
-    extra: Option<ScheduleExtra<'a>>,
-    origin: Option<LocationOrigin<'a>>,
-    intermediate: Vec<LocationIntermediate<'a>>,
-    changes: Vec<ChangeEnRoute<'a>>,
-    terminal: Option<LocationTerminating<'a>>,
+    pub basic: BasicSchedule<'a>,
+    pub extra: Option<ScheduleExtra<'a>>,
+    pub origin: Option<LocationOrigin<'a>>,
+    pub intermediate: Vec<LocationIntermediate<'a>>,
+    pub changes: Vec<ChangeEnRoute<'a>>,
+    pub terminal: Option<LocationTerminating<'a>>,
 }
 
 pub(super) fn parse_schedule<'a>() -> impl Fn(&'a [u8]) -> IResult<&'a [u8], Schedule, CIFParseError>
@@ -129,12 +129,12 @@ LTGRVPK   0009 00091     TF                                                     
                     perf_allowance: "  ".into(),
                 }),
                 intermediate: vec![LocationIntermediate {
-                    tiploc: "SNDP    ".into(),
-                    scheduled_arrival_time: "0005H".into(),
-                    scheduled_departure_time: "0006 ".into(),
-                    scheduled_pass: "     ".into(),
-                    public_arrival: "0006".into(),
-                    public_departure: "0006".into(),
+                    tiploc: "SNDP".into(),
+                    scheduled_arrival_time: NaiveTime::from_hms(0, 5, 30).into(),
+                    scheduled_departure_time: NaiveTime::from_hms(0, 6, 0).into(),
+                    scheduled_pass: None,
+                    public_arrival: NaiveTime::from_hms(0, 6, 0).into(),
+                    public_departure: NaiveTime::from_hms(0, 6, 0).into(),
                     platform: "   ".into(),
                     line: "   ".into(),
                     path: "   ".into(),
@@ -145,9 +145,9 @@ LTGRVPK   0009 00091     TF                                                     
                 }],
                 changes: vec![],
                 terminal: Some(LocationTerminating {
-                    tiploc: "GRVPK   ".into(),
-                    scheduled_arrival_time: "0009 ".into(),
-                    public_arrival: "0009".into(),
+                    tiploc: "GRVPK".into(),
+                    scheduled_arrival_time: NaiveTime::from_hms(0, 9, 0),
+                    public_arrival: NaiveTime::from_hms(0, 9, 0),
                     platform: "1  ".into(),
                     path: "   ".into(),
                     activity: "TF          ".into(),
