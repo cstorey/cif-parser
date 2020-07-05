@@ -38,3 +38,9 @@ impl<'a> From<&'a str> for Tiploc<'a> {
         Tiploc(tl)
     }
 }
+
+impl AsRef<str> for Tiploc<'_> {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
