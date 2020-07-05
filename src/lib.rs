@@ -28,7 +28,7 @@ pub use header::Header;
 pub use location_intermediate::LocationIntermediate;
 pub use location_origin::LocationOrigin;
 pub use location_terminating::LocationTerminating;
-pub use reader::Reader;
+pub use reader::{Reader, ReaderError, ReaderResult};
 pub use schedule::Schedule;
 pub use schedule_extra::ScheduleExtra;
 pub use tiploc::Tiploc;
