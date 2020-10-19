@@ -16,7 +16,7 @@ bytes = "0.5.5"
 thiserror = "1.0.20"
 
 [dev-dependencies]
-env_logger = "0.7.1"
+env_logger = "0.8.1"
 structopt = "0.3.15"
 suppositions = { git = "https://github.com/cstorey/suppositions.git" }
 anyhow = "1.0.31"
