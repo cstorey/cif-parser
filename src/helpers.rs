@@ -102,7 +102,8 @@ pub fn time<'a>() -> impl Fn(&'a [u8]) -> IResult<&'a [u8], NaiveTime, CIFParseE
     }
 }
 
-pub fn opt_time<'a>() -> impl Fn(&'a [u8]) -> IResult<&'a [u8], Option<NaiveTime>, CIFParseError> {
+pub fn opt_time<'a>() -> impl FnMut(&'a [u8]) -> IResult<&'a [u8], Option<NaiveTime>, CIFParseError>
+{
     alt((map(time(), Some), map(tag("    "), |_| None)))
 }
 
@@ -120,7 +121,7 @@ pub fn time_half<'a>() -> impl Fn(&'a [u8]) -> IResult<&'a [u8], NaiveTime, CIFP
 }
 
 pub fn opt_time_half<'a>(
-) -> impl Fn(&'a [u8]) -> IResult<&'a [u8], Option<NaiveTime>, CIFParseError> {
+) -> impl FnMut(&'a [u8]) -> IResult<&'a [u8], Option<NaiveTime>, CIFParseError> {
     alt((map(time_half(), Some), map(tag("     "), |_| None)))
 }
 

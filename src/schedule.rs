@@ -36,7 +36,7 @@ pub(super) fn parse_schedule<'a>() -> impl Fn(&'a [u8]) -> IResult<&'a [u8], Sch
                 Intermediate::Change,
             ),
         ));
-        let folder = fold_many0(
+        let mut folder = fold_many0(
             preceded(char('\n'), intermediate_line),
             (Vec::new(), Vec::new()),
             |(mut changes, mut intermediate), it| {
