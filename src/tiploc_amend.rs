@@ -54,7 +54,7 @@ mod test {
 
     #[test]
     fn should_parse_tiploc_amend_a() {
-        let p = complete(parse_tiploc_amend());
+        let mut p = complete(parse_tiploc_amend());
         let hdr =
             b"TAMBRK94200590970AMILLBROOK SIG E942        86536   0                           ";
         assert_eq!(80, hdr.len());
