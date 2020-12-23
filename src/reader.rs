@@ -1,6 +1,6 @@
 use std::io::Read;
 
-use bytes::BytesMut;
+use bytes::{Buf, BytesMut};
 use log::*;
 use nom::{Err, Offset};
 use thiserror::Error;
@@ -52,7 +52,7 @@ impl<R: Read> ReadBuf<R> {
     }
 
     fn consume(&mut self, size: usize) {
-        let _ = self.buf.split_to(size);
+        self.buf.advance(size);
     }
 }
 
