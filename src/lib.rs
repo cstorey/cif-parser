@@ -38,7 +38,7 @@ pub use trailer::Trailer;
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Record<'a> {
     Header(Header),
-    TiplocInsert(TiplocInsert<'a>),
+    TiplocInsert(TiplocInsert),
     TiplocAmend(TiplocAmend<'a>),
     Association(Association<'a>),
     Schedule(BasicSchedule<'a>),
@@ -68,7 +68,6 @@ pub enum Stp {
 
 pub fn parse<'a>(i: &'a [u8]) -> IResult<&'a [u8], Record, CIFParseError> {
     let p = alt((
-        map(tiploc_insert::parse_tiploc_insert(), Record::TiplocInsert),
         map(tiploc_amend::parse_tiploc_amend(), Record::TiplocAmend),
         map(association::parse_association(), Record::Association),
         map(basic_schedule::parse_basic_schedule(), Record::Schedule),

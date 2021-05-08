@@ -35,9 +35,13 @@ pub fn string<'a>(
     }
 }
 
+pub(crate) fn string_of_slice(val: &[u8]) -> Result<&str, std::str::Utf8Error> {
+    let s = std::str::from_utf8(val)?.trim_end();
+    Ok(s)
+}
 pub(crate) fn string_of_slice_opt(val: &[u8]) -> Result<Option<&str>, std::str::Utf8Error> {
-    let val = std::str::from_utf8(val)?.trim_end();
-    Ok(Some(val).filter(|val| !val.is_empty()))
+    let s = string_of_slice(val)?;
+    Ok(Some(s).filter(|val| !val.is_empty()))
 }
 
 pub fn mandatory<'a, T>(
