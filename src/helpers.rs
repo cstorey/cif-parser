@@ -2,12 +2,9 @@ use std::borrow::Cow;
 
 use bitflags::bitflags;
 use chrono::NaiveDate;
-use chrono::{Duration, NaiveTime};
+use chrono::NaiveTime;
 
-use nom::{
-    branch::alt, bytes::streaming::*, character::is_digit, character::streaming::char,
-    combinator::map, IResult,
-};
+use nom::{bytes::streaming::*, IResult};
 
 use crate::errors::CIFParseError;
 
@@ -82,15 +79,6 @@ pub(crate) fn yymmdd_from_slice(slice: &[u8]) -> Result<NaiveDate, CIFParseError
     }
 }
 
-pub fn time<'a>() -> impl Fn(&'a [u8]) -> IResult<&'a [u8], NaiveTime, CIFParseError> {
-    move |i: &'a [u8]| -> IResult<&'a [u8], NaiveTime, CIFParseError> {
-        let (i, hhmm) = take_while_m_n(2usize, 4, is_digit)(i)?;
-
-        let dt = time_from_slice(hhmm).map_err(CIFParseError::from_unrecoverable)?;
-        Ok((i, dt))
-    }
-}
-
 pub(crate) fn time_from_slice(slice: &[u8]) -> Result<NaiveTime, CIFParseError> {
     let hh = &slice[0..2];
     let mm = &slice[2..4];
@@ -126,19 +114,6 @@ pub(crate) fn time_half_from_slice_opt(slice: &[u8]) -> Result<Option<NaiveTime>
     } else {
         let t = time_half_from_slice(slice)?;
         Ok(Some(t))
-    }
-}
-
-pub fn time_half<'a>() -> impl Fn(&'a [u8]) -> IResult<&'a [u8], NaiveTime, CIFParseError> {
-    let time_p = time();
-    move |i: &'a [u8]| -> IResult<&'a [u8], NaiveTime, CIFParseError> {
-        let (i, t) = time_p(i)?;
-        let (i, seconds) = alt((
-            map(char(' '), |_| Duration::seconds(0)),
-            map(char('H'), |_| Duration::seconds(30)),
-        ))(i)?;
-
-        Ok((i, t + seconds))
     }
 }
 
@@ -247,35 +222,6 @@ mod test {
             err,
             "field_name"
         )
-    }
-
-    #[test]
-    fn time_should_parse_hhmm() {
-        let s = b"2151!!";
-        let (rest, result) = time()(s).expect("parse");
-        assert_eq!(
-            (rest, result),
-            (b"!!" as &[u8], NaiveTime::from_hms(21, 51, 0))
-        );
-    }
-
-    #[test]
-    fn time_half_should_parse_hhmm_as_start() {
-        let s = b"2151 ";
-        let (rest, result) = time_half()(s).expect("parse");
-        assert_eq!(
-            (rest, result),
-            (b"" as &[u8], NaiveTime::from_hms(21, 51, 0))
-        );
-    }
-    #[test]
-    fn time_half_should_parse_hhmmh_as_half_minute() {
-        let s = b"2151H";
-        let (rest, result) = time_half()(s).expect("parse");
-        assert_eq!(
-            (rest, result),
-            (b"" as &[u8], NaiveTime::from_hms(21, 51, 30))
-        );
     }
 
     #[test]

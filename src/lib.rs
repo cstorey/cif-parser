@@ -45,7 +45,7 @@ pub enum Record<'a> {
     ScheduleExtra(ScheduleExtra),
     LocationOrigin(LocationOrigin),
     LocationIntermediate(LocationIntermediate),
-    LocationTerminating(LocationTerminating<'a>),
+    LocationTerminating(LocationTerminating),
     ChangeEnRoute(ChangeEnRoute<'a>),
     Trailer(Trailer),
     Unrecognised(&'a str),
@@ -71,10 +71,6 @@ pub fn parse<'a>(i: &'a [u8]) -> IResult<&'a [u8], Record, CIFParseError> {
         map(
             change_en_route::parse_change_en_route(),
             Record::ChangeEnRoute,
-        ),
-        map(
-            location_terminating::parse_location_terminating(),
-            Record::LocationTerminating,
         ),
         map(parse_unrecognised(), Record::Unrecognised),
     ));

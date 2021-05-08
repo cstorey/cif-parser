@@ -7,7 +7,7 @@ use thiserror::Error;
 
 use crate::{
     parse, Association, BasicSchedule, CIFParseError, Header, LocationIntermediate, LocationOrigin,
-    Record, ScheduleExtra, TiplocAmend, TiplocInsert, Trailer,
+    LocationTerminating, Record, ScheduleExtra, TiplocAmend, TiplocInsert, Trailer,
 };
 
 // 80 characters plus a newline
@@ -135,6 +135,12 @@ impl<R: Read> Reader<R> {
                     let record = self.buf.split_to(CIF_LINE_LEN).freeze();
                     let val =
                         Record::LocationIntermediate(LocationIntermediate::from_record(record));
+                    let res = f(val);
+                    return Ok(Some(res));
+                }
+                b"LT" => {
+                    let record = self.buf.split_to(CIF_LINE_LEN).freeze();
+                    let val = Record::LocationTerminating(LocationTerminating::from_record(record));
                     let res = f(val);
                     return Ok(Some(res));
                 }
