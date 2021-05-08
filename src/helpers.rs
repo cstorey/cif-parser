@@ -60,13 +60,6 @@ pub fn mandatory<'a, T>(
     }
 }
 
-pub fn mandatory_str<'a>(
-    field_name: &'static str,
-    nchars: usize,
-) -> impl Fn(&'a [u8]) -> IResult<&'a [u8], &'a str, CIFParseError> {
-    mandatory(field_name, string(nchars))
-}
-
 pub(crate) fn ddmmyy_from_slice(slice: &[u8]) -> Result<NaiveDate, CIFParseError> {
     let dd = lexical_core::parse(&slice[0..2])?;
     let mm = lexical_core::parse(&slice[2..4])?;

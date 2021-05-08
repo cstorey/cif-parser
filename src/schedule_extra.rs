@@ -1,35 +1,44 @@
-use nom::{bytes::streaming::*, character::is_space, IResult};
+use std::fmt;
 
-use crate::errors::CIFParseError;
-use crate::helpers::{mandatory_str, string};
+use bytes::Bytes;
 
-#[derive(Debug, Clone, Eq, PartialEq)]
-pub struct ScheduleExtra<'a> {
-    pub uic_code: Option<&'a str>,
-    pub atoc_code: &'a str,
-    pub applicable_timetable_code: &'a str,
+use crate::{
+    errors::CIFParseError,
+    helpers::{string_of_slice, string_of_slice_opt},
+};
+
+#[derive(Clone, Eq, PartialEq)]
+pub struct ScheduleExtra {
+    record: Bytes,
 }
 
-pub(super) fn parse_schedule_extra<'a>(
-) -> impl Fn(&'a [u8]) -> IResult<&'a [u8], ScheduleExtra, CIFParseError> {
-    |i: &'a [u8]| -> IResult<&'a [u8], ScheduleExtra, CIFParseError> {
-        let (i, _) = tag("BX")(i)?;
-        let (i, _traction_class) = string(4usize)(i)?;
-        let (i, uic_code) = string(5usize)(i)?;
-        let (i, atoc_code) = mandatory_str("atoc_code", 2usize)(i)?;
-        let (i, applicable_timetable_code) = mandatory_str("applicable_timetable_code", 1usize)(i)?;
-        let (i, _reserved) = string(8usize)(i)?;
-        let (i, _reserved) = string(1usize)(i)?;
-        let (i, _spare) = take_while_m_n(57, 57, is_space)(i)?;
+impl ScheduleExtra {
+    pub(crate) fn from_record(record: Bytes) -> Self {
+        Self { record }
+    }
 
-        Ok((
-            i,
-            ScheduleExtra {
-                uic_code,
-                atoc_code,
-                applicable_timetable_code,
-            },
-        ))
+    pub fn uic_code(&self) -> Result<Option<&str>, CIFParseError> {
+        Ok(string_of_slice_opt(&self.record[6..11])?)
+    }
+    pub fn atoc_code(&self) -> Result<&str, CIFParseError> {
+        Ok(string_of_slice(&self.record[11..13])?)
+    }
+    pub fn applicable_timetable_code(&self) -> Result<&str, CIFParseError> {
+        Ok(string_of_slice(&self.record[13..14])?)
+    }
+}
+
+impl fmt::Debug for ScheduleExtra {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut s = f.debug_struct("ScheduleExtra");
+        s.field("uic_code", &self.uic_code());
+        s.field("atoc_code", &self.atoc_code());
+        s.field(
+            "applicable_timetable_code",
+            &self.applicable_timetable_code(),
+        );
+
+        s.finish()
     }
 }
 
@@ -38,18 +47,22 @@ mod test {
     use super::*;
     #[test]
     fn should_parse_schedule_extra() {
-        let p = parse_schedule_extra();
-        let i = b"BX         SEY                                                                  ";
-        assert_eq!(80, i.len());
-        let (rest, val) = p(i).expect("parse");
-        assert_eq!(String::from_utf8_lossy(rest), "");
-        assert_eq!(
-            val,
-            ScheduleExtra {
-                uic_code: None,
-                atoc_code: "SE",
-                applicable_timetable_code: "Y",
-            }
-        )
+        let extra =
+            b"BX         SEY                                                                  ";
+        assert_eq!(80, extra.len());
+        let example = ScheduleExtra::from_record(Bytes::from(extra.as_ref()));
+        assert_eq!(example.uic_code().unwrap(), None);
+        assert_eq!(example.atoc_code().unwrap(), "SE");
+        assert_eq!(example.applicable_timetable_code().unwrap(), "Y");
+    }
+    #[test]
+    fn should_parse_schedule_extra_2() {
+        let extra =
+            b"BX    47410ZZY                                                                  ";
+        assert_eq!(80, extra.len());
+        let example = ScheduleExtra::from_record(Bytes::from(extra.as_ref()));
+        assert_eq!(example.uic_code().unwrap(), Some("47410"));
+        assert_eq!(example.atoc_code().unwrap(), "ZZ");
+        assert_eq!(example.applicable_timetable_code().unwrap(), "Y");
     }
 }

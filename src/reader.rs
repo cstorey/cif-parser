@@ -6,8 +6,8 @@ use nom::{Err, Offset};
 use thiserror::Error;
 
 use crate::{
-    parse, Association, BasicSchedule, CIFParseError, Header, Record, TiplocAmend, TiplocInsert,
-    Trailer,
+    parse, Association, BasicSchedule, CIFParseError, Header, Record, ScheduleExtra, TiplocAmend,
+    TiplocInsert, Trailer,
 };
 
 // 80 characters plus a newline
@@ -116,6 +116,12 @@ impl<R: Read> Reader<R> {
                 b"BS" => {
                     let record = self.buf.split_to(CIF_LINE_LEN).freeze();
                     let val = Record::Schedule(BasicSchedule::from_record(record));
+                    let res = f(val);
+                    return Ok(Some(res));
+                }
+                b"BX" => {
+                    let record = self.buf.split_to(CIF_LINE_LEN).freeze();
+                    let val = Record::ScheduleExtra(ScheduleExtra::from_record(record));
                     let res = f(val);
                     return Ok(Some(res));
                 }
