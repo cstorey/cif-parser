@@ -4,7 +4,7 @@ use bytes::Bytes;
 use chrono::{NaiveDate, NaiveDateTime};
 
 use crate::helpers::string_of_slice_opt;
-use crate::{errors::CIFParseError, helpers::yymmdd_from_slice};
+use crate::{errors::CIFParseError, helpers::ddmmyy_from_slice};
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum FullOrUpdate {
@@ -60,10 +60,10 @@ impl Header {
         Ok(std::str::from_utf8(&self.record[47..48])?)
     }
     pub fn user_start_date(&self) -> Result<NaiveDate, CIFParseError> {
-        yymmdd_from_slice(&self.record[48..54])
+        ddmmyy_from_slice(&self.record[48..54])
     }
     pub fn user_end_date(&self) -> Result<NaiveDate, CIFParseError> {
-        yymmdd_from_slice(&self.record[54..60])
+        ddmmyy_from_slice(&self.record[54..60])
     }
 }
 

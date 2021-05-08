@@ -77,7 +77,7 @@ pub(crate) fn date_yymmdd<'a>() -> impl Fn(&'a [u8]) -> IResult<&'a [u8], Date<T
     }
 }
 
-pub(crate) fn yymmdd_from_slice(slice: &[u8]) -> Result<NaiveDate, CIFParseError> {
+pub(crate) fn ddmmyy_from_slice(slice: &[u8]) -> Result<NaiveDate, CIFParseError> {
     let dd = lexical_core::parse(&slice[0..2])?;
     let mm = lexical_core::parse(&slice[2..4])?;
     let yy: i32 = lexical_core::parse(&slice[4..6])?;
