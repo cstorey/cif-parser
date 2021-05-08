@@ -44,7 +44,7 @@ pub enum Record<'a> {
     Schedule(BasicSchedule),
     ScheduleExtra(ScheduleExtra),
     LocationOrigin(LocationOrigin),
-    LocationIntermediate(LocationIntermediate<'a>),
+    LocationIntermediate(LocationIntermediate),
     LocationTerminating(LocationTerminating<'a>),
     ChangeEnRoute(ChangeEnRoute<'a>),
     Trailer(Trailer),
@@ -68,10 +68,6 @@ pub enum Stp {
 
 pub fn parse<'a>(i: &'a [u8]) -> IResult<&'a [u8], Record, CIFParseError> {
     let p = alt((
-        map(
-            location_intermediate::parse_location_intermediate(),
-            Record::LocationIntermediate,
-        ),
         map(
             change_en_route::parse_change_en_route(),
             Record::ChangeEnRoute,

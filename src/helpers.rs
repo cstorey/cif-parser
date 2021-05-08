@@ -99,6 +99,15 @@ pub(crate) fn time_from_slice(slice: &[u8]) -> Result<NaiveTime, CIFParseError> 
     Ok(dt)
 }
 
+pub(crate) fn time_from_slice_opt(slice: &[u8]) -> Result<Option<NaiveTime>, CIFParseError> {
+    if slice[0] == b' ' {
+        Ok(None)
+    } else {
+        let t = time_from_slice(slice)?;
+        Ok(Some(t))
+    }
+}
+
 pub(crate) fn time_half_from_slice(slice: &[u8]) -> Result<NaiveTime, CIFParseError> {
     let hh = lexical_core::parse(&slice[0..2])?;
     let mm = lexical_core::parse(&slice[2..4])?;
@@ -111,10 +120,13 @@ pub(crate) fn time_half_from_slice(slice: &[u8]) -> Result<NaiveTime, CIFParseEr
         .ok_or_else(|| CIFParseError::InvalidTime(slice.into()))?;
     Ok(dt)
 }
-
-pub fn opt_time<'a>() -> impl FnMut(&'a [u8]) -> IResult<&'a [u8], Option<NaiveTime>, CIFParseError>
-{
-    alt((map(time(), Some), map(tag("    "), |_| None)))
+pub(crate) fn time_half_from_slice_opt(slice: &[u8]) -> Result<Option<NaiveTime>, CIFParseError> {
+    if slice[0] == b' ' {
+        Ok(None)
+    } else {
+        let t = time_half_from_slice(slice)?;
+        Ok(Some(t))
+    }
 }
 
 pub fn time_half<'a>() -> impl Fn(&'a [u8]) -> IResult<&'a [u8], NaiveTime, CIFParseError> {
@@ -128,11 +140,6 @@ pub fn time_half<'a>() -> impl Fn(&'a [u8]) -> IResult<&'a [u8], NaiveTime, CIFP
 
         Ok((i, t + seconds))
     }
-}
-
-pub fn opt_time_half<'a>(
-) -> impl FnMut(&'a [u8]) -> IResult<&'a [u8], Option<NaiveTime>, CIFParseError> {
-    alt((map(time_half(), Some), map(tag("     "), |_| None)))
 }
 
 pub(crate) fn days_from_slice(slice: &[u8]) -> Result<Days, CIFParseError> {
