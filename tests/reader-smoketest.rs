@@ -23,6 +23,8 @@ enum Kind {
 
 #[test]
 fn should_read_file() {
+    env_logger::try_init().unwrap_or_default();
+
     let mut rdr = Reader::new(SAMPLE_FILE);
 
     let mut nitems = BTreeMap::<Kind, usize>::new();

@@ -23,43 +23,37 @@ pub enum ReaderError {
 
 pub type ReaderResult<T> = std::result::Result<T, ReaderError>;
 
-struct ReadBuf<R> {
+struct Filler<R> {
     inner: R,
-    buf: BytesMut,
 }
 
 pub struct Reader<R> {
-    buf: ReadBuf<R>,
+    src: Filler<R>,
+    buf: BytesMut,
 }
 
-impl<R: Read> ReadBuf<R> {
+impl<R: Read> Filler<R> {
+    const BUF_FILL_SIZE: usize = 4096;
+
     fn new(inner: R) -> Self {
-        let buf = BytesMut::new();
-        ReadBuf { inner, buf }
+        Filler { inner }
     }
 
-    fn refill_until_eof(&mut self) -> ReaderResult<bool> {
-        let prev_start = self.buf.len();
-        self.buf.resize(prev_start + 4096, 0);
-        let nread = self.inner.read(&mut self.buf[prev_start..])?;
+    fn refill_until_eof(&mut self, buf: &mut BytesMut) -> ReaderResult<bool> {
+        let prev_start = buf.len();
+        buf.resize(prev_start + Self::BUF_FILL_SIZE, 0);
+        let nread = self.inner.read(&mut buf[prev_start..])?;
         trace!("Read {} bytes", nread);
-        self.buf.truncate(prev_start + nread);
+        buf.truncate(prev_start + nread);
         Ok(nread > 0)
-    }
-
-    fn buf(&self) -> &[u8] {
-        &*self.buf
-    }
-
-    fn consume(&mut self, size: usize) {
-        self.buf.advance(size);
     }
 }
 
 impl<R: Read> Reader<R> {
     pub fn new(rdr: R) -> Self {
-        let buf = ReadBuf::new(rdr);
-        Self { buf }
+        let src = Filler::new(rdr);
+        let buf = BytesMut::new();
+        Self { src, buf }
     }
 
     pub fn read_next<T>(
@@ -67,20 +61,37 @@ impl<R: Read> Reader<R> {
         mut f: impl for<'a> FnMut(Record<'a>) -> T,
     ) -> ReaderResult<Option<T>> {
         loop {
-            let buf = self.buf.buf();
-            match parse(buf) {
+            const SNIPPET: usize = 128;
+            if log::log_enabled!(log::Level::Trace) {
+                trace!("Top of loop: buf.len(): {:?}", self.buf.len());
+
+                if self.buf.len() > SNIPPET {
+                    trace!(
+                        "Buffer now: {:?}…",
+                        String::from_utf8_lossy(&self.buf[..SNIPPET])
+                    )
+                } else {
+                    trace!("Buffer now: {:?}", String::from_utf8_lossy(&self.buf))
+                }
+            }
+            let res = parse(&*self.buf);
+            trace!("Result => {:?}", res);
+            match res {
                 Ok((rest, val)) => {
-                    let consumed = buf.offset(rest);
+                    let consumed = self.buf.offset(rest);
+                    debug!("Consumed: {:?}", consumed);
 
                     let res = f(val);
 
-                    self.buf.consume(consumed);
+                    trace!("Pre advance: buf.len(): {:?}", self.buf.len());
+                    self.buf.advance(consumed);
+                    trace!("Post advance: buf.len(): {:?}", self.buf.len());
                     return Ok(Some(res));
                 }
 
                 Err(Err::Incomplete(need)) => {
                     debug!("Need more: {:?}", need);
-                    if !self.buf.refill_until_eof()? {
+                    if !self.src.refill_until_eof(&mut self.buf)? {
                         break;
                     }
                 }
@@ -93,7 +104,7 @@ impl<R: Read> Reader<R> {
     }
 
     pub fn get_ref(&self) -> &R {
-        &self.buf.inner
+        &self.src.inner
     }
 }
 
