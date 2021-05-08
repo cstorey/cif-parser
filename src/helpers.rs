@@ -140,23 +140,33 @@ pub fn days<'a>() -> impl Fn(&'a [u8]) -> IResult<&'a [u8], Days, CIFParseError>
             c == b' ' || c == b'0' || c == b'1'
         }
         let (i, slice) = take_while_m_n(7, 7, is_bit_char)(i)?;
-        let days = slice
-            .iter()
-            .zip(&[
-                Days::MON,
-                Days::TUE,
-                Days::WED,
-                Days::THU,
-                Days::FRI,
-                Days::SAT,
-                Days::SUN,
-            ])
-            .fold(
-                Days::empty(),
-                |days, (ch, day)| if ch == &b'1' { days | *day } else { days },
-            );
+        let days = days_from_slice(slice).map_err(CIFParseError::from_unrecoverable)?;
         Ok((i, days))
     }
+}
+
+fn days_from_slice(slice: &[u8]) -> Result<Days, CIFParseError> {
+    const DAYS: &[Days] = &[
+        Days::MON,
+        Days::TUE,
+        Days::WED,
+        Days::THU,
+        Days::FRI,
+        Days::SAT,
+        Days::SUN,
+    ];
+
+    let mut days = Days::empty();
+    for (ch, day) in slice.iter().zip(DAYS) {
+        match *ch {
+            b'0' | b' ' => {}
+            b'1' => {
+                days |= *day;
+            }
+            _ => return Err(CIFParseError::InvalidItem),
+        }
+    }
+    Ok(days)
 }
 
 #[cfg(test)]
