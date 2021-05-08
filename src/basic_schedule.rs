@@ -8,7 +8,7 @@ use nom::{
 use crate::errors::CIFParseError;
 use crate::helpers::{date_yymmdd, days, mandatory_str, string, Days};
 
-use super::{TransactionType, STP};
+use super::{Stp, TransactionType};
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct BasicSchedule<'a> {
@@ -29,7 +29,7 @@ pub struct BasicSchedule<'a> {
     pub reservations: Option<&'a str>,
     pub catering: Option<&'a str>,
     pub branding: Option<&'a str>,
-    pub stp: STP,
+    pub stp: Stp,
 }
 
 pub(super) fn parse_basic_schedule<'a>(
@@ -68,10 +68,10 @@ pub(super) fn parse_basic_schedule<'a>(
         let (i, branding) = string(4usize)(i)?;
         let (i, _spare) = take_while_m_n(1, 1, is_space)(i)?;
         let (i, stp) = alt((
-            map(char('C'), |_| STP::Cancellation),
-            map(char('N'), |_| STP::New),
-            map(char('O'), |_| STP::Overlay),
-            map(char('P'), |_| STP::Permanent),
+            map(char('C'), |_| Stp::Cancellation),
+            map(char('N'), |_| Stp::New),
+            map(char('O'), |_| Stp::Overlay),
+            map(char('P'), |_| Stp::Permanent),
         ))(i)?;
 
         Ok((
@@ -134,7 +134,7 @@ mod test {
                 reservations: None,
                 catering: None,
                 branding: None,
-                stp: STP::Overlay,
+                stp: Stp::Overlay,
             }
         )
     }
@@ -169,7 +169,7 @@ ZZ";
                 reservations: None,
                 catering: None,
                 branding: None,
-                stp: STP::Cancellation,
+                stp: Stp::Cancellation,
             }
         )
     }
@@ -200,7 +200,7 @@ ZZ";
                 reservations: None,
                 catering: None,
                 branding: None,
-                stp: STP::Permanent
+                stp: Stp::Permanent
             },
         )
     }
@@ -230,7 +230,7 @@ ZZ";
                 reservations: None,
                 catering: None,
                 branding: None,
-                stp: STP::Permanent
+                stp: Stp::Permanent
             },
         )
     }
@@ -261,7 +261,7 @@ ZZ";
                 reservations: None,
                 catering: None,
                 branding: None,
-                stp: STP::Permanent
+                stp: Stp::Permanent
             },
         )
     }
@@ -292,7 +292,7 @@ ZZ";
                 reservations: None,
                 catering: None,
                 branding: None,
-                stp: STP::New,
+                stp: Stp::New,
             },
         )
     }

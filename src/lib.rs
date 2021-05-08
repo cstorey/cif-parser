@@ -57,7 +57,7 @@ pub enum TransactionType {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub enum STP {
+pub enum Stp {
     Cancellation,
     New,
     Overlay,

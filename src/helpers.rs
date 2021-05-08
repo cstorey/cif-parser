@@ -192,7 +192,7 @@ mod test {
     fn mandatory_should_return_ok_on_success() {
         fn inner<'a>(i: &'a [u8]) -> IResult<&'a [u8], Option<()>, CIFParseError> {
             Ok((i, Some(())))
-        };
+        }
         let p = mandatory("field", inner);
         let (rest, result) = p(b"Hi").expect("parse");
         assert_eq!((rest, result), (b"Hi" as &[u8], ()));
@@ -202,7 +202,7 @@ mod test {
     fn mandatory_includes_field_name_in_error() {
         fn inner<'a>(i: &'a [u8]) -> IResult<&'a [u8], Option<()>, CIFParseError> {
             Ok((i, None))
-        };
+        }
         let p = mandatory("field_name", inner);
 
         let err = p(b"  ").expect_err("should fail");

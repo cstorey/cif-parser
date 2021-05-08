@@ -16,6 +16,7 @@ pub struct Schedule<'a> {
 pub(super) fn parse_schedule<'a>() -> impl Fn(&'a [u8]) -> IResult<&'a [u8], Schedule, CIFParseError>
 {
     |i: &'a [u8]| -> IResult<&'a [u8], Schedule, CIFParseError> {
+        #[allow(clippy::clippy::large_enum_variant)]
         enum Intermediate<'a> {
             Location(LocationIntermediate<'a>),
             Change(ChangeEnRoute<'a>),
@@ -60,8 +61,8 @@ pub(super) fn parse_schedule<'a>() -> impl Fn(&'a [u8]) -> IResult<&'a [u8], Sch
                 extra,
                 origin,
                 intermediate,
-                terminal,
                 changes,
+                terminal,
             },
         ))
     }
@@ -109,7 +110,7 @@ LTGRVPK   0009 00091     TF                                                     
                     reservations: None,
                     catering: None,
                     branding: None,
-                    stp: STP::Permanent,
+                    stp: Stp::Permanent,
                 },
                 extra: Some(ScheduleExtra {
                     uic_code: None,
@@ -188,7 +189,7 @@ ZZ";
                     reservations: None,
                     catering: None,
                     branding: None,
-                    stp: STP::Cancellation,
+                    stp: Stp::Cancellation,
                 },
                 extra: None,
                 origin: None,
