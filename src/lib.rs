@@ -89,7 +89,6 @@ pub fn parse<'a>(i: &'a [u8]) -> IResult<&'a [u8], Record, CIFParseError> {
             location_terminating::parse_location_terminating(),
             Record::LocationTerminating,
         ),
-        map(trailer::parse_trailer(), Record::Trailer),
         map(parse_unrecognised(), Record::Unrecognised),
     ));
     terminated(p, char('\n'))(i)
