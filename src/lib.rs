@@ -37,7 +37,7 @@ pub use trailer::Trailer;
 #[allow(clippy::large_enum_variant)]
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Record<'a> {
-    Header(Header<'a>),
+    Header(Header),
     TiplocInsert(TiplocInsert<'a>),
     TiplocAmend(TiplocAmend<'a>),
     Association(Association<'a>),
@@ -68,7 +68,6 @@ pub enum Stp {
 
 pub fn parse<'a>(i: &'a [u8]) -> IResult<&'a [u8], Record, CIFParseError> {
     let p = alt((
-        map(header::parse_header(), Record::Header),
         map(tiploc_insert::parse_tiploc_insert(), Record::TiplocInsert),
         map(tiploc_amend::parse_tiploc_amend(), Record::TiplocAmend),
         map(association::parse_association(), Record::Association),

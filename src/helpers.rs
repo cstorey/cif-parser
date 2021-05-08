@@ -1,5 +1,7 @@
+use std::borrow::Cow;
+
 use bitflags::bitflags;
-use chrono::offset::TimeZone;
+use chrono::{offset::TimeZone, NaiveDate};
 use chrono::{Date, Duration, NaiveTime};
 use chrono_tz::{Europe::London, Tz};
 use nom::{
@@ -26,12 +28,16 @@ pub fn string<'a>(
 ) -> impl Fn(&'a [u8]) -> IResult<&'a [u8], Option<&'a str>, CIFParseError> {
     move |i: &'a [u8]| -> IResult<&'a [u8], Option<&'a str>, CIFParseError> {
         let (rest, val) = take(nchars)(i)?;
-        let val = match std::str::from_utf8(val) {
-            Ok(val) => val.trim_end(),
-            Err(e) => unimplemented!("str::from_utf8: {:?}", e),
-        };
-        Ok((rest, Some(val).filter(|val| !val.is_empty())))
+        Ok((
+            rest,
+            string_of_slice_opt(val).map_err(CIFParseError::from_unrecoverable)?,
+        ))
     }
+}
+
+pub(crate) fn string_of_slice_opt(val: &[u8]) -> Result<Option<&str>, std::str::Utf8Error> {
+    let val = std::str::from_utf8(val)?.trim_end();
+    Ok(Some(val).filter(|val| !val.is_empty()))
 }
 
 pub fn mandatory<'a, T>(
@@ -57,11 +63,11 @@ pub fn mandatory_str<'a>(
     mandatory(field_name, string(nchars))
 }
 
-pub fn date_ddmmyy<'a>() -> impl Fn(&'a [u8]) -> IResult<&'a [u8], Date<Tz>, CIFParseError> {
+pub(crate) fn date_yymmdd<'a>() -> impl Fn(&'a [u8]) -> IResult<&'a [u8], Date<Tz>, CIFParseError> {
     move |i: &'a [u8]| -> IResult<&'a [u8], Date<Tz>, CIFParseError> {
-        let (i, dd) = take_while_m_n(2usize, 2, is_digit)(i)?;
-        let (i, mm) = take_while_m_n(2usize, 2, is_digit)(i)?;
         let (i, yy) = take_while_m_n(2usize, 2, is_digit)(i)?;
+        let (i, mm) = take_while_m_n(2usize, 2, is_digit)(i)?;
+        let (i, dd) = take_while_m_n(2usize, 2, is_digit)(i)?;
         let dt = London.ymd(
             lexical_core::parse::<i32>(yy).map_err(CIFParseError::from_unrecoverable)? + 2000,
             lexical_core::parse(mm).map_err(CIFParseError::from_unrecoverable)?,
@@ -71,17 +77,14 @@ pub fn date_ddmmyy<'a>() -> impl Fn(&'a [u8]) -> IResult<&'a [u8], Date<Tz>, CIF
     }
 }
 
-pub fn date_yymmdd<'a>() -> impl Fn(&'a [u8]) -> IResult<&'a [u8], Date<Tz>, CIFParseError> {
-    move |i: &'a [u8]| -> IResult<&'a [u8], Date<Tz>, CIFParseError> {
-        let (i, yy) = take_while_m_n(2usize, 2, is_digit)(i)?;
-        let (i, mm) = take_while_m_n(2usize, 2, is_digit)(i)?;
-        let (i, dd) = take_while_m_n(2usize, 2, is_digit)(i)?;
-        let dt = London.ymd(
-            lexical_core::parse::<i32>(yy).map_err(CIFParseError::from_unrecoverable)? + 2000,
-            lexical_core::parse(mm).map_err(CIFParseError::from_unrecoverable)?,
-            lexical_core::parse(dd).map_err(CIFParseError::from_unrecoverable)?,
-        );
-        Ok((i, dt))
+pub(crate) fn yymmdd_from_slice(slice: &[u8]) -> Result<NaiveDate, CIFParseError> {
+    let dd = lexical_core::parse(&slice[0..2])?;
+    let mm = lexical_core::parse(&slice[2..4])?;
+    let yy: i32 = lexical_core::parse(&slice[4..6])?;
+    if let Some(dt) = NaiveDate::from_ymd_opt(yy + 2000, mm, dd) {
+        Ok(dt)
+    } else {
+        Err(CIFParseError::InvalidTime(Cow::from(slice.to_owned())))
     }
 }
 
@@ -182,7 +185,28 @@ mod test {
     }
 
     #[test]
-    fn string_parser_return_remainder() {
+    fn string_of_slice_should_read_value() {
+        // string of length 3;
+        let result = string_of_slice_opt(b"ABC").expect("should parse");
+        assert_eq!(result, Some("ABC"))
+    }
+
+    #[test]
+    fn string_of_slice_should_read_part() {
+        // string of length 3;
+        let result = string_of_slice_opt(b"AB ").expect("should parse");
+        assert_eq!(result, Some("AB"))
+    }
+
+    #[test]
+    fn string_of_slice_should_empty() {
+        // string of length 3;
+        let result = string_of_slice_opt(b"   ").expect("should parse");
+        assert_eq!(result, None)
+    }
+
+    #[test]
+    fn string_of_slice_return_remainder() {
         let p = string(3);
         let (rest, result) = p(b"A  DEF").expect("should parse");
         assert_eq!((rest, result), (b"DEF" as &[u8], Some("A")));
@@ -214,12 +238,6 @@ mod test {
         )
     }
 
-    #[test]
-    fn date_should_parse_ddmmyy() {
-        let s = b"060315!!";
-        let (rest, result) = date_ddmmyy()(s).expect("parse");
-        assert_eq!((rest, result), (b"!!" as &[u8], London.ymd(2015, 3, 6)));
-    }
     #[test]
     fn date_should_parse_yymmdd() {
         let s = b"150306!!";

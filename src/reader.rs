@@ -5,7 +5,10 @@ use log::*;
 use nom::{Err, Offset};
 use thiserror::Error;
 
-use crate::{parse, CIFParseError, Record};
+use crate::{parse, CIFParseError, Header, Record};
+
+// 80 characters plus a newline
+const CIF_LINE_LEN: usize = 81;
 
 #[derive(Error, Debug)]
 pub enum ReaderError {
@@ -74,6 +77,20 @@ impl<R: Read> Reader<R> {
                     trace!("Buffer now: {:?}", String::from_utf8_lossy(&self.buf))
                 }
             }
+
+            if self.buf.len() < CIF_LINE_LEN {
+                debug!("Need more");
+                if !self.src.refill_until_eof(&mut self.buf)? {
+                    break;
+                }
+            }
+            if &self.buf[0..2] == b"HD" {
+                let record = self.buf.split_to(CIF_LINE_LEN).freeze();
+                let val = Record::Header(Header::from_record(record));
+                let res = f(val);
+                return Ok(Some(res));
+            }
+
             let res = parse(&*self.buf);
             trace!("Result => {:?}", res);
             match res {
