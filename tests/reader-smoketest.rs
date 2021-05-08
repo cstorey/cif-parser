@@ -14,7 +14,7 @@ enum Kind {
     Schedule,
     ChangeEnRoute,
     Trailer,
-    Unrecognised,
+    Unrecognised(String),
 }
 
 #[test]
@@ -31,7 +31,11 @@ fn should_read_file() {
             Record::Schedule(_) => *nitems.entry(Kind::Schedule).or_default() += 1,
             Record::ChangeEnRoute(_) => *nitems.entry(Kind::ChangeEnRoute).or_default() += 1,
             Record::Trailer(_) => *nitems.entry(Kind::Trailer).or_default() += 1,
-            Record::Unrecognised(_) => *nitems.entry(Kind::Unrecognised).or_default() += 1,
+            Record::Unrecognised(s) => {
+                *nitems
+                    .entry(Kind::Unrecognised(s[0..2].to_owned()))
+                    .or_default() += 1
+            }
         })
         .expect("read")
     {}
