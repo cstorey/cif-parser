@@ -1,120 +1,137 @@
-use std::borrow::Cow;
+use std::fmt;
 
-use nom::{bytes::streaming::*, character::is_space, error::*, IResult};
+use bytes::Bytes;
 
-#[derive(Debug, Clone, Eq, PartialEq)]
-pub struct ChangeEnRoute<'a> {
-    pub tiploc: Cow<'a, str>,
-    pub train_category: Cow<'a, str>,
-    pub train_identity: Cow<'a, str>,
-    pub headcode: Cow<'a, str>,
-    pub course_indicator: Cow<'a, str>,
-    pub service_code: Cow<'a, str>,
-    pub biz_sector: Cow<'a, str>,
-    pub timing_load: Cow<'a, str>,
-    pub speed: Cow<'a, str>,
-    pub operating_chars: Cow<'a, str>,
-    pub class: Cow<'a, str>,
-    pub sleepers: Cow<'a, str>,
-    pub reservations: Cow<'a, str>,
-    pub connect: Cow<'a, str>,
-    pub catering: Cow<'a, str>,
-    pub branding: Cow<'a, str>,
-    pub traction: Cow<'a, str>,
-    pub uic_code: Cow<'a, str>,
-    pub retail_id: Cow<'a, str>,
+use crate::{
+    helpers::{string_of_slice, string_of_slice_opt},
+    CIFParseError, Tiploc,
+};
+
+#[derive(Clone, Eq, PartialEq)]
+pub struct ChangeEnRoute {
+    record: Bytes,
 }
 
-pub(super) fn parse_change_en_route<'a, E: ParseError<&'a [u8]>>(
-) -> impl Fn(&'a [u8]) -> IResult<&'a [u8], ChangeEnRoute, E> {
-    |i: &'a [u8]| -> IResult<&'a [u8], ChangeEnRoute, E> {
-        let (i, _) = tag("CR")(i)?;
-        let (i, tiploc) = take(8usize)(i)?;
-        let (i, train_category) = take(2usize)(i)?;
-        let (i, train_identity) = take(4usize)(i)?;
-        let (i, headcode) = take(4usize)(i)?;
-        let (i, course_indicator) = take(1usize)(i)?;
-        let (i, service_code) = take(8usize)(i)?;
-        let (i, biz_sector) = take(1usize)(i)?;
-        let (i, _power_type) = take(3usize)(i)?;
-        let (i, timing_load) = take(4usize)(i)?;
-        let (i, speed) = take(3usize)(i)?;
-        let (i, operating_chars) = take(6usize)(i)?;
-        let (i, class) = take(1usize)(i)?;
-        let (i, sleepers) = take(1usize)(i)?;
-        let (i, reservations) = take(1usize)(i)?;
-        let (i, connect) = take(1usize)(i)?;
-        let (i, catering) = take(4usize)(i)?;
-        let (i, branding) = take(4usize)(i)?;
-        let (i, traction) = take(4usize)(i)?;
-        let (i, uic_code) = take(5usize)(i)?;
-        let (i, retail_id) = take(8usize)(i)?;
-        let (i, _spare) = take_while_m_n(5, 5, is_space)(i)?;
+impl ChangeEnRoute {
+    pub(crate) fn from_record(record: Bytes) -> Self {
+        Self { record }
+    }
 
-        Ok((
-            i,
-            ChangeEnRoute {
-                tiploc: String::from_utf8_lossy(tiploc),
-                train_category: String::from_utf8_lossy(train_category),
-                train_identity: String::from_utf8_lossy(train_identity),
-                headcode: String::from_utf8_lossy(headcode),
-                course_indicator: String::from_utf8_lossy(course_indicator),
-                service_code: String::from_utf8_lossy(service_code),
-                biz_sector: String::from_utf8_lossy(biz_sector),
-                timing_load: String::from_utf8_lossy(timing_load),
-                speed: String::from_utf8_lossy(speed),
-                operating_chars: String::from_utf8_lossy(operating_chars),
-                class: String::from_utf8_lossy(class),
-                sleepers: String::from_utf8_lossy(sleepers),
-                reservations: String::from_utf8_lossy(reservations),
-                connect: String::from_utf8_lossy(connect),
-                catering: String::from_utf8_lossy(catering),
-                branding: String::from_utf8_lossy(branding),
-                traction: String::from_utf8_lossy(traction),
-                uic_code: String::from_utf8_lossy(uic_code),
-                retail_id: String::from_utf8_lossy(retail_id),
-            },
-        ))
+    pub fn tiploc(&self) -> Result<Tiploc, CIFParseError> {
+        Ok(Tiploc::from(string_of_slice(&self.record[2..10])?))
+    }
+    pub fn train_category(&self) -> Result<&str, CIFParseError> {
+        Ok(string_of_slice(&self.record[10..12])?)
+    }
+    pub fn train_identity(&self) -> Result<&str, CIFParseError> {
+        Ok(string_of_slice(&self.record[12..16])?)
+    }
+    pub fn headcode(&self) -> Result<Option<&str>, CIFParseError> {
+        Ok(string_of_slice_opt(&self.record[16..20])?)
+    }
+    pub fn course_indicator(&self) -> Result<&str, CIFParseError> {
+        Ok(string_of_slice(&self.record[20..21])?)
+    }
+    pub fn service_code(&self) -> Result<&str, CIFParseError> {
+        Ok(string_of_slice(&self.record[21..29])?)
+    }
+    pub fn biz_sector(&self) -> Result<Option<&str>, CIFParseError> {
+        Ok(string_of_slice_opt(&self.record[29..30])?)
+    }
+    pub fn timing_load(&self) -> Result<Option<&str>, CIFParseError> {
+        Ok(string_of_slice_opt(&self.record[33..37])?)
+    }
+    pub fn speed(&self) -> Result<&str, CIFParseError> {
+        Ok(string_of_slice(&self.record[37..40])?)
+    }
+    pub fn operating_chars(&self) -> Result<Option<&str>, CIFParseError> {
+        Ok(string_of_slice_opt(&self.record[40..46])?)
+    }
+    pub fn class(&self) -> Result<Option<&str>, CIFParseError> {
+        Ok(string_of_slice_opt(&self.record[46..47])?)
+    }
+    pub fn sleepers(&self) -> Result<Option<&str>, CIFParseError> {
+        Ok(string_of_slice_opt(&self.record[47..48])?)
+    }
+    pub fn reservations(&self) -> Result<Option<&str>, CIFParseError> {
+        Ok(string_of_slice_opt(&self.record[48..49])?)
+    }
+    pub fn connect(&self) -> Result<Option<&str>, CIFParseError> {
+        Ok(string_of_slice_opt(&self.record[49..50])?)
+    }
+    pub fn catering(&self) -> Result<Option<&str>, CIFParseError> {
+        Ok(string_of_slice_opt(&self.record[50..54])?)
+    }
+    pub fn branding(&self) -> Result<Option<&str>, CIFParseError> {
+        Ok(string_of_slice_opt(&self.record[54..58])?)
+    }
+    pub fn traction(&self) -> Result<Option<&str>, CIFParseError> {
+        Ok(string_of_slice_opt(&self.record[58..62])?)
+    }
+    pub fn uic_code(&self) -> Result<Option<&str>, CIFParseError> {
+        Ok(string_of_slice_opt(&self.record[62..67])?)
+    }
+    pub fn retail_id(&self) -> Result<Option<&str>, CIFParseError> {
+        Ok(string_of_slice_opt(&self.record[67..75])?)
+    }
+}
+impl fmt::Debug for ChangeEnRoute {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut s = f.debug_struct("TiplocInsert");
+        s.field("tiploc", &self.tiploc());
+        s.field("train_category", &self.train_category());
+        s.field("train_identity", &self.train_identity());
+        s.field("headcode", &self.headcode());
+        s.field("course_indicator", &self.course_indicator());
+        s.field("service_code", &self.service_code());
+        s.field("biz_sector", &self.biz_sector());
+        s.field("timing_load", &self.timing_load());
+        s.field("speed", &self.speed());
+        s.field("operating_chars", &self.operating_chars());
+        s.field("class", &self.class());
+        s.field("sleepers", &self.sleepers());
+        s.field("reservations", &self.reservations());
+        s.field("connect", &self.connect());
+        s.field("catering", &self.catering());
+        s.field("branding", &self.branding());
+        s.field("traction", &self.traction());
+        s.field("uic_code", &self.uic_code());
+        s.field("retail_id", &self.retail_id());
+        s.finish()
     }
 }
 
 #[cfg(test)]
 mod test {
+    use crate::Tiploc;
+
     use super::*;
 
     #[test]
     fn should_parse_change_en_route() {
-        let p = parse_change_en_route::<VerboseError<_>>();
         let i = b"CRCTRDJN  DT3Q27    152495112 D      030                                        ";
         assert_eq!(80, i.len());
-        let (rest, val) = p(i).expect("parse");
-        let rest = String::from_utf8_lossy(rest);
-        assert_eq!(
-            (val, &*rest),
-            (
-                ChangeEnRoute {
-                    tiploc: "CTRDJN  ".into(),
-                    train_category: "DT".into(),
-                    train_identity: "3Q27".into(),
-                    headcode: "    ".into(),
-                    course_indicator: "1".into(),
-                    service_code: "52495112".into(),
-                    biz_sector: " ".into(),
-                    timing_load: "    ".into(),
-                    speed: "030".into(),
-                    operating_chars: "      ".into(),
-                    class: " ".into(),
-                    sleepers: " ".into(),
-                    reservations: " ".into(),
-                    connect: " ".into(),
-                    catering: "    ".into(),
-                    branding: "    ".into(),
-                    traction: "    ".into(),
-                    uic_code: "     ".into(),
-                    retail_id: "        ".into(),
-                },
-                "",
-            )
-        )
+        let example = ChangeEnRoute::from_record(Bytes::from(i.as_ref()));
+        println!("{:?}", example);
+
+        assert_eq!(example.tiploc().unwrap(), Tiploc::from("CTRDJN"));
+        assert_eq!(example.train_category().unwrap(), "DT");
+        assert_eq!(example.train_identity().unwrap(), "3Q27");
+        assert_eq!(example.headcode().unwrap(), None);
+        assert_eq!(example.course_indicator().unwrap(), "1");
+        assert_eq!(example.service_code().unwrap(), "52495112");
+        assert_eq!(example.biz_sector().unwrap(), None);
+        assert_eq!(example.timing_load().unwrap(), None);
+        assert_eq!(example.speed().unwrap(), "030");
+        assert_eq!(example.operating_chars().unwrap(), None);
+        assert_eq!(example.class().unwrap(), None);
+        assert_eq!(example.sleepers().unwrap(), None);
+        assert_eq!(example.reservations().unwrap(), None);
+        assert_eq!(example.connect().unwrap(), None);
+        assert_eq!(example.catering().unwrap(), None);
+        assert_eq!(example.branding().unwrap(), None);
+        assert_eq!(example.traction().unwrap(), None);
+        assert_eq!(example.uic_code().unwrap(), None);
+        assert_eq!(example.retail_id().unwrap(), None);
     }
 }

@@ -1,6 +1,5 @@
 use nom::{
-    branch::alt, bytes::streaming::take, character::streaming::*, combinator::map,
-    sequence::terminated, IResult,
+    bytes::streaming::take, character::streaming::*, combinator::map, sequence::terminated, IResult,
 };
 
 mod association;
@@ -46,7 +45,7 @@ pub enum Record<'a> {
     LocationOrigin(LocationOrigin),
     LocationIntermediate(LocationIntermediate),
     LocationTerminating(LocationTerminating),
-    ChangeEnRoute(ChangeEnRoute<'a>),
+    ChangeEnRoute(ChangeEnRoute),
     Trailer(Trailer),
     Unrecognised(&'a str),
 }
@@ -67,13 +66,7 @@ pub enum Stp {
 }
 
 pub fn parse<'a>(i: &'a [u8]) -> IResult<&'a [u8], Record, CIFParseError> {
-    let p = alt((
-        map(
-            change_en_route::parse_change_en_route(),
-            Record::ChangeEnRoute,
-        ),
-        map(parse_unrecognised(), Record::Unrecognised),
-    ));
+    let p = map(parse_unrecognised(), Record::Unrecognised);
     terminated(p, char('\n'))(i)
 }
 
