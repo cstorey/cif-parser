@@ -40,7 +40,7 @@ pub enum Record<'a> {
     Header(Header),
     TiplocInsert(TiplocInsert),
     TiplocAmend(TiplocAmend),
-    Association(Association<'a>),
+    Association(Association),
     Schedule(BasicSchedule<'a>),
     ScheduleExtra(ScheduleExtra<'a>),
     LocationOrigin(LocationOrigin<'a>),
@@ -68,7 +68,6 @@ pub enum Stp {
 
 pub fn parse<'a>(i: &'a [u8]) -> IResult<&'a [u8], Record, CIFParseError> {
     let p = alt((
-        map(association::parse_association(), Record::Association),
         map(basic_schedule::parse_basic_schedule(), Record::Schedule),
         map(
             schedule_extra::parse_schedule_extra(),

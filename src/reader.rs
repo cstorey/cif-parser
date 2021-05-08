@@ -5,7 +5,7 @@ use log::*;
 use nom::{Err, Offset};
 use thiserror::Error;
 
-use crate::{parse, CIFParseError, Header, Record, TiplocAmend, TiplocInsert};
+use crate::{parse, Association, CIFParseError, Header, Record, TiplocAmend, TiplocInsert};
 
 // 80 characters plus a newline
 const CIF_LINE_LEN: usize = 81;
@@ -101,6 +101,12 @@ impl<R: Read> Reader<R> {
                 b"TA" => {
                     let record = self.buf.split_to(CIF_LINE_LEN).freeze();
                     let val = Record::TiplocAmend(TiplocAmend::from_record(record));
+                    let res = f(val);
+                    return Ok(Some(res));
+                }
+                b"AA" => {
+                    let record = self.buf.split_to(CIF_LINE_LEN).freeze();
+                    let val = Record::Association(Association::from_record(record));
                     let res = f(val);
                     return Ok(Some(res));
                 }
