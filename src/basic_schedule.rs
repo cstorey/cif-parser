@@ -1,299 +1,314 @@
-use chrono::Date;
-use chrono_tz::Tz;
-use nom::{
-    branch::alt, bytes::streaming::*, character::is_space, character::streaming::*,
-    combinator::map, IResult,
-};
+use std::fmt;
 
-use crate::errors::CIFParseError;
-use crate::helpers::{date_yymmdd, days, mandatory_str, string, Days};
+use bytes::Bytes;
+use chrono::NaiveDate;
+
+use crate::helpers::{days_from_slice, string_of_slice_opt, yymmdd_from_slice, Days};
+use crate::{errors::CIFParseError, helpers::string_of_slice};
 
 use super::{Stp, TransactionType};
 
-#[derive(Debug, Clone, Eq, PartialEq)]
-pub struct BasicSchedule<'a> {
-    pub transaction_type: TransactionType,
-    pub uid: &'a str,
-    pub start_date: Date<Tz>,
-    pub end_date: Option<Date<Tz>>,
-    pub days: Days,
-    pub bank_holiday: Option<&'a str>,
-    pub status: Option<&'a str>,
-    pub category: Option<&'a str>,
-    pub identity: Option<&'a str>,
-    pub headcode: Option<&'a str>,
-    pub service_code: Option<&'a str>,
-    pub speed: Option<&'a str>,
-    pub seating_class: Option<&'a str>,
-    pub sleepers: Option<&'a str>,
-    pub reservations: Option<&'a str>,
-    pub catering: Option<&'a str>,
-    pub branding: Option<&'a str>,
-    pub stp: Stp,
+#[derive(Clone, Eq, PartialEq)]
+pub struct BasicSchedule {
+    record: Bytes,
 }
 
-pub(super) fn parse_basic_schedule<'a>(
-) -> impl Fn(&'a [u8]) -> IResult<&'a [u8], BasicSchedule, CIFParseError> {
-    |i: &'a [u8]| -> IResult<&'a [u8], BasicSchedule, CIFParseError> {
-        let (i, _) = tag("BS")(i)?;
-        let (i, ttype) = alt((
-            map(char('N'), |_| TransactionType::New),
-            map(char('D'), |_| TransactionType::Delete),
-            map(char('R'), |_| TransactionType::Revise),
-        ))(i)?;
-        let (i, uid) = mandatory_str("uid", 6usize)(i)?;
-        let (i, start_date) = date_yymmdd()(i)?;
-        let (i, end_date) = alt((
-            map(date_yymmdd(), Some),
-            map(take_while_m_n(6, 6, is_space), |_| None),
-        ))(i)?;
-        let (i, days) = days()(i)?; // Bit string?
-        let (i, bank_holiday) = string(1usize)(i)?;
-        let (i, status) = string(1usize)(i)?;
-        let (i, category) = string(2usize)(i)?;
-        let (i, identity) = string(4usize)(i)?;
-        let (i, headcode) = string(4usize)(i)?;
-        let (i, _course_indicator) = string(1usize)(i)?;
-        let (i, service_code) = string(8usize)(i)?;
-        let (i, _portion_id) = string(1usize)(i)?;
-        let (i, _power_type) = string(3usize)(i)?;
-        let (i, _timing_load) = string(4usize)(i)?;
-        let (i, speed) = string(3usize)(i)?;
-        let (i, _operating_characteristics) = string(6usize)(i)?;
-        let (i, seating_class) = string(1usize)(i)?;
-        let (i, sleepers) = string(1usize)(i)?;
-        let (i, reservations) = string(1usize)(i)?;
-        let (i, _connection) = string(1usize)(i)?;
-        let (i, catering) = string(4usize)(i)?;
-        let (i, branding) = string(4usize)(i)?;
-        let (i, _spare) = take_while_m_n(1, 1, is_space)(i)?;
-        let (i, stp) = alt((
-            map(char('C'), |_| Stp::Cancellation),
-            map(char('N'), |_| Stp::New),
-            map(char('O'), |_| Stp::Overlay),
-            map(char('P'), |_| Stp::Permanent),
-        ))(i)?;
+impl BasicSchedule {
+    pub(crate) fn from_record(record: Bytes) -> Self {
+        Self { record }
+    }
 
-        Ok((
-            i,
-            BasicSchedule {
-                transaction_type: ttype,
-                uid,
-                start_date,
-                end_date,
-                days,
-                bank_holiday,
-                status,
-                category,
-                identity,
-                headcode,
-                service_code,
-                speed,
-                seating_class,
-                sleepers,
-                reservations,
-                catering,
-                branding,
-                stp,
-            },
-        ))
+    pub fn transaction_type(&self) -> Result<TransactionType, CIFParseError> {
+        match self.record[2] {
+            b'N' => Ok(TransactionType::New),
+            b'D' => Ok(TransactionType::Delete),
+            b'R' => Ok(TransactionType::Revise),
+            _ => Err(CIFParseError::InvalidItem),
+        }
+    }
+    pub fn uid(&self) -> Result<&str, CIFParseError> {
+        Ok(string_of_slice(&self.record[3..9])?)
+    }
+    pub fn start_date(&self) -> Result<NaiveDate, CIFParseError> {
+        yymmdd_from_slice(&self.record[9..15])
+    }
+    pub fn end_date(&self) -> Result<Option<NaiveDate>, CIFParseError> {
+        if let Some(s) = string_of_slice_opt(&self.record[15..21])? {
+            let dt = yymmdd_from_slice(s.as_bytes())?;
+            Ok(Some(dt))
+        } else {
+            Ok(None)
+        }
+    }
+    pub fn days(&self) -> Result<Days, CIFParseError> {
+        days_from_slice(&self.record[21..28])
+    }
+    pub fn bank_holiday(&self) -> Result<Option<&str>, CIFParseError> {
+        Ok(string_of_slice_opt(&self.record[28..29])?)
+    }
+    pub fn status(&self) -> Result<Option<&str>, CIFParseError> {
+        Ok(string_of_slice_opt(&self.record[29..30])?)
+    }
+    pub fn category(&self) -> Result<Option<&str>, CIFParseError> {
+        Ok(string_of_slice_opt(&self.record[30..32])?)
+    }
+    pub fn identity(&self) -> Result<Option<&str>, CIFParseError> {
+        Ok(string_of_slice_opt(&self.record[32..36])?)
+    }
+    pub fn headcode(&self) -> Result<Option<&str>, CIFParseError> {
+        Ok(string_of_slice_opt(&self.record[36..40])?)
+    }
+    pub fn service_code(&self) -> Result<Option<&str>, CIFParseError> {
+        Ok(string_of_slice_opt(&self.record[41..49])?)
+    }
+    pub fn speed(&self) -> Result<Option<&str>, CIFParseError> {
+        Ok(string_of_slice_opt(&self.record[57..60])?)
+    }
+    pub fn seating_class(&self) -> Result<Option<&str>, CIFParseError> {
+        Ok(string_of_slice_opt(&self.record[66..67])?)
+    }
+    pub fn sleepers(&self) -> Result<Option<&str>, CIFParseError> {
+        Ok(string_of_slice_opt(&self.record[67..68])?)
+    }
+    pub fn reservations(&self) -> Result<Option<&str>, CIFParseError> {
+        Ok(string_of_slice_opt(&self.record[68..69])?)
+    }
+    pub fn catering(&self) -> Result<Option<&str>, CIFParseError> {
+        Ok(string_of_slice_opt(&self.record[70..74])?)
+    }
+    pub fn branding(&self) -> Result<Option<&str>, CIFParseError> {
+        Ok(string_of_slice_opt(&self.record[74..78])?)
+    }
+    pub fn stp(&self) -> Result<Stp, CIFParseError> {
+        match self.record[79] {
+            b'C' => Ok(Stp::Cancellation),
+            b'N' => Ok(Stp::New),
+            b'O' => Ok(Stp::Overlay),
+            b'P' => Ok(Stp::Permanent),
+            _ => Err(CIFParseError::InvalidItem),
+        }
+    }
+}
+
+impl fmt::Debug for BasicSchedule {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut s = f.debug_struct("BasicSchedule");
+        s.field("transaction_type", &self.transaction_type());
+        s.field("uid", &self.uid());
+        s.field("start_date", &self.start_date());
+        s.field("end_date", &self.end_date());
+        s.field("days", &self.days());
+        s.field("bank_holiday", &self.bank_holiday());
+        s.field("status", &self.status());
+        s.field("category", &self.category());
+        s.field("identity", &self.identity());
+        s.field("headcode", &self.headcode());
+        s.field("service_code", &self.service_code());
+        s.field("speed", &self.speed());
+        s.field("seating_class", &self.seating_class());
+        s.field("sleepers", &self.sleepers());
+        s.field("reservations", &self.reservations());
+        s.field("catering", &self.catering());
+        s.field("branding", &self.branding());
+        s.field("stp", &self.stp());
+
+        s.finish()
     }
 }
 
 #[cfg(test)]
 mod test {
-    use chrono::offset::TimeZone;
-    use chrono_tz::Europe::London;
-
     use super::*;
 
     #[test]
     fn should_parse_basic_schedule() {
-        let p = parse_basic_schedule();
-        let i = b"BSRG828851510191510231100100 POO2N75    113575825 DMUE   090      S            O";
-        assert_eq!(80, i.len());
-        let (rest, val) = p(i).expect("parse");
-        assert_eq!(String::from_utf8_lossy(rest), "");
+        let sched =
+            b"BSRG828851510191510231100100 POO2N75    113575825 DMUE   090      S            O";
+        assert_eq!(80, sched.len());
+        let example = BasicSchedule::from_record(Bytes::from(sched.as_ref()));
+        assert_eq!(example.transaction_type().unwrap(), TransactionType::Revise);
+        assert_eq!(example.uid().unwrap(), "G82885");
         assert_eq!(
-            val,
-            BasicSchedule {
-                transaction_type: TransactionType::Revise,
-                uid: "G82885",
-                start_date: London.ymd(2015, 10, 19),
-                end_date: London.ymd(2015, 10, 23).into(),
-                days: Days::MON | Days::TUE | Days::FRI,
-                bank_holiday: None,
-                status: "P".into(),
-                category: "OO".into(),
-                identity: "2N75".into(),
-                headcode: None,
-                service_code: "13575825".into(),
-                speed: "090".into(),
-                seating_class: "S".into(),
-                sleepers: None,
-                reservations: None,
-                catering: None,
-                branding: None,
-                stp: Stp::Overlay,
-            }
-        )
+            example.start_date().unwrap(),
+            NaiveDate::from_ymd(2015, 10, 19)
+        );
+        assert_eq!(
+            example.end_date().unwrap(),
+            NaiveDate::from_ymd(2015, 10, 23).into()
+        );
+        assert_eq!(example.days().unwrap(), Days::MON | Days::TUE | Days::FRI);
+        assert_eq!(example.bank_holiday().unwrap(), None);
+        assert_eq!(example.status().unwrap(), Some("P"));
+        assert_eq!(example.category().unwrap(), Some("OO"));
+        assert_eq!(example.identity().unwrap(), Some("2N75"));
+        assert_eq!(example.headcode().unwrap(), None);
+        assert_eq!(example.service_code().unwrap(), Some("13575825"));
+        assert_eq!(example.speed().unwrap(), Some("090"));
+        assert_eq!(example.seating_class().unwrap(), Some("S"));
+        assert_eq!(example.sleepers().unwrap(), None);
+        assert_eq!(example.reservations().unwrap(), None);
+        assert_eq!(example.catering().unwrap(), None);
+        assert_eq!(example.branding().unwrap(), None);
+        assert_eq!(example.stp().unwrap(), Stp::Overlay);
     }
 
     #[test]
     fn should_parse_cancellation_schedule() {
-        let i = b"\
-BSNC670061905191907280000001            1                                      C\n\
-ZZ";
+        let sched =
+            b"BSNC670061905191907280000001            1                                      C";
 
-        let p = parse_basic_schedule();
-        eprintln!("{}", String::from_utf8_lossy(&[]));
-        let (rest, val) = p(i).expect("parse");
-        assert_eq!(String::from_utf8_lossy(rest), "\nZZ");
+        assert_eq!(80, sched.len());
+        let example = BasicSchedule::from_record(Bytes::from(sched.as_ref()));
+        assert_eq!(example.transaction_type().unwrap(), TransactionType::New);
+        assert_eq!(example.uid().unwrap(), "C67006");
         assert_eq!(
-            val,
-            BasicSchedule {
-                transaction_type: TransactionType::New,
-                uid: "C67006",
-                start_date: London.ymd(2019, 5, 19),
-                end_date: Some(London.ymd(2019, 7, 28)),
-                days: Days::SUN,
-                bank_holiday: None,
-                status: None,
-                category: None,
-                identity: None,
-                headcode: None,
-                service_code: None,
-                speed: None,
-                seating_class: None,
-                sleepers: None,
-                reservations: None,
-                catering: None,
-                branding: None,
-                stp: Stp::Cancellation,
-            }
-        )
+            example.start_date().unwrap(),
+            NaiveDate::from_ymd(2019, 5, 19)
+        );
+        assert_eq!(
+            example.end_date().unwrap(),
+            Some(NaiveDate::from_ymd(2019, 7, 28))
+        );
+        assert_eq!(example.days().unwrap(), Days::SUN);
+        assert_eq!(example.bank_holiday().unwrap(), None);
+        assert_eq!(example.status().unwrap(), None);
+        assert_eq!(example.category().unwrap(), None);
+        assert_eq!(example.identity().unwrap(), None);
+        assert_eq!(example.headcode().unwrap(), None);
+        assert_eq!(example.service_code().unwrap(), None);
+        assert_eq!(example.speed().unwrap(), None);
+        assert_eq!(example.seating_class().unwrap(), None);
+        assert_eq!(example.sleepers().unwrap(), None);
+        assert_eq!(example.reservations().unwrap(), None);
+        assert_eq!(example.catering().unwrap(), None);
+        assert_eq!(example.branding().unwrap(), None);
+        assert_eq!(example.stp().unwrap(), Stp::Cancellation);
     }
 
     #[test]
     fn should_parse_l63173() {
-        let i = b"BSRL631731905191909290000001 POO2Y16    122214000 EMU375 075D                  P";
-        let p = parse_basic_schedule();
-        let (rest, val) = p(i).expect("parse");
-        assert_eq!(String::from_utf8_lossy(rest), "");
+        let sched =
+            b"BSRL631731905191909290000001 POO2Y16    122214000 EMU375 075D                  P";
+        assert_eq!(80, sched.len());
+        let example = BasicSchedule::from_record(Bytes::from(sched.as_ref()));
+        assert_eq!(example.transaction_type().unwrap(), TransactionType::Revise);
+        assert_eq!(example.uid().unwrap(), "L63173");
         assert_eq!(
-            val,
-            BasicSchedule {
-                transaction_type: TransactionType::Revise,
-                uid: "L63173",
-                start_date: London.ymd(2019, 5, 19),
-                end_date: London.ymd(2019, 9, 29).into(),
-                days: Days::SUN,
-                bank_holiday: None,
-                status: "P".into(),
-                category: "OO".into(),
-                identity: "2Y16".into(),
-                headcode: None,
-                service_code: "22214000".into(),
-                speed: "075".into(),
-                seating_class: None,
-                sleepers: None,
-                reservations: None,
-                catering: None,
-                branding: None,
-                stp: Stp::Permanent
-            },
-        )
+            example.start_date().unwrap(),
+            NaiveDate::from_ymd(2019, 5, 19)
+        );
+        assert_eq!(
+            example.end_date().unwrap(),
+            NaiveDate::from_ymd(2019, 9, 29).into()
+        );
+        assert_eq!(example.days().unwrap(), Days::SUN);
+        assert_eq!(example.bank_holiday().unwrap(), None);
+        assert_eq!(example.status().unwrap(), "P".into());
+        assert_eq!(example.category().unwrap(), "OO".into());
+        assert_eq!(example.identity().unwrap(), "2Y16".into());
+        assert_eq!(example.headcode().unwrap(), None);
+        assert_eq!(example.service_code().unwrap(), "22214000".into());
+        assert_eq!(example.speed().unwrap(), "075".into());
+        assert_eq!(example.seating_class().unwrap(), None);
+        assert_eq!(example.sleepers().unwrap(), None);
+        assert_eq!(example.reservations().unwrap(), None);
+        assert_eq!(example.catering().unwrap(), None);
+        assert_eq!(example.branding().unwrap(), None);
+        assert_eq!(example.stp().unwrap(), Stp::Permanent);
     }
     #[test]
     fn should_parse_h19351() {
-        let i = b"BSRH193511905201911011111100 F          1         D  600 060                   P";
-        let p = parse_basic_schedule();
-        let (rest, val) = p(i).expect("parse");
-        assert_eq!(String::from_utf8_lossy(rest), "");
+        let sched =
+            b"BSRH193511905201911011111100 F          1         D  600 060                   P";
+        assert_eq!(80, sched.len());
+        let example = BasicSchedule::from_record(Bytes::from(sched.as_ref()));
+        assert_eq!(example.transaction_type().unwrap(), TransactionType::Revise);
+        assert_eq!(example.uid().unwrap(), "H19351");
         assert_eq!(
-            val,
-            BasicSchedule {
-                transaction_type: TransactionType::Revise,
-                uid: "H19351",
-                start_date: London.ymd(2019, 5, 20),
-                end_date: London.ymd(2019, 11, 1).into(),
-                days: Days::MON | Days::TUE | Days::WED | Days::THU | Days::FRI,
-                bank_holiday: None,
-                status: "F".into(),
-                category: None,
-                identity: None,
-                headcode: None,
-                service_code: None,
-                speed: "060".into(),
-                seating_class: None,
-                sleepers: None,
-                reservations: None,
-                catering: None,
-                branding: None,
-                stp: Stp::Permanent
-            },
-        )
+            example.start_date().unwrap(),
+            NaiveDate::from_ymd(2019, 5, 20)
+        );
+        assert_eq!(
+            example.end_date().unwrap(),
+            NaiveDate::from_ymd(2019, 11, 1).into()
+        );
+        assert_eq!(
+            example.days().unwrap(),
+            Days::MON | Days::TUE | Days::WED | Days::THU | Days::FRI
+        );
+        assert_eq!(example.bank_holiday().unwrap(), None);
+        assert_eq!(example.status().unwrap(), "F".into());
+        assert_eq!(example.category().unwrap(), None);
+        assert_eq!(example.identity().unwrap(), None);
+        assert_eq!(example.headcode().unwrap(), None);
+        assert_eq!(example.service_code().unwrap(), None);
+        assert_eq!(example.speed().unwrap(), "060".into());
+        assert_eq!(example.seating_class().unwrap(), None);
+        assert_eq!(example.sleepers().unwrap(), None);
+        assert_eq!(example.reservations().unwrap(), None);
+        assert_eq!(example.catering().unwrap(), None);
+        assert_eq!(example.branding().unwrap(), None);
+        assert_eq!(example.stp().unwrap(), Stp::Permanent);
     }
     //
     #[test]
     fn should_parse_c02189() {
-        let i = b"BSNC021891905191912080000001 BBS0B00    122180008                              P";
-        let p = parse_basic_schedule();
-        let (rest, val) = p(i).expect("parse");
-        assert_eq!(String::from_utf8_lossy(rest), "");
+        let sched =
+            b"BSNC021891905191912080000001 BBS0B00    122180008                              P";
+        assert_eq!(80, sched.len());
+        let example = BasicSchedule::from_record(Bytes::from(sched.as_ref()));
+        assert_eq!(example.transaction_type().unwrap(), TransactionType::New);
+        assert_eq!(example.uid().unwrap(), "C02189");
         assert_eq!(
-            val,
-            BasicSchedule {
-                transaction_type: TransactionType::New,
-                uid: "C02189",
-                start_date: London.ymd(2019, 5, 19),
-                end_date: London.ymd(2019, 12, 8).into(),
-                days: Days::SUN,
-                bank_holiday: None,
-                status: "B".into(),
-                category: Some("BS"),
-                identity: Some("0B00"),
-                headcode: None,
-                service_code: Some("22180008"),
-                speed: None,
-                seating_class: None,
-                sleepers: None,
-                reservations: None,
-                catering: None,
-                branding: None,
-                stp: Stp::Permanent
-            },
-        )
+            example.start_date().unwrap(),
+            NaiveDate::from_ymd(2019, 5, 19)
+        );
+        assert_eq!(
+            example.end_date().unwrap(),
+            NaiveDate::from_ymd(2019, 12, 8).into()
+        );
+        assert_eq!(example.days().unwrap(), Days::SUN);
+        assert_eq!(example.bank_holiday().unwrap(), None);
+        assert_eq!(example.status().unwrap(), "B".into());
+        assert_eq!(example.category().unwrap(), Some("BS"));
+        assert_eq!(example.identity().unwrap(), Some("0B00"));
+        assert_eq!(example.headcode().unwrap(), None);
+        assert_eq!(example.service_code().unwrap(), Some("22180008"));
+        assert_eq!(example.speed().unwrap(), None);
+        assert_eq!(example.seating_class().unwrap(), None);
+        assert_eq!(example.sleepers().unwrap(), None);
+        assert_eq!(example.reservations().unwrap(), None);
+        assert_eq!(example.catering().unwrap(), None);
+        assert_eq!(example.branding().unwrap(), None);
+        assert_eq!(example.stp().unwrap(), Stp::Permanent);
     }
 
     #[test]
     fn should_parse_s48587() {
-        let i = b"BSDS48587190525                                                                N";
-        let p = parse_basic_schedule();
-        let (rest, val) = p(i).expect("parse");
-        assert_eq!(String::from_utf8_lossy(rest), "");
+        let sched =
+            b"BSDS48587190525                                                                N";
+        assert_eq!(80, sched.len());
+        let example = BasicSchedule::from_record(Bytes::from(sched.as_ref()));
+        assert_eq!(example.transaction_type().unwrap(), TransactionType::Delete);
+        assert_eq!(example.uid().unwrap(), "S48587");
         assert_eq!(
-            val,
-            BasicSchedule {
-                transaction_type: TransactionType::Delete,
-                uid: "S48587",
-                start_date: London.ymd(2019, 5, 25),
-                end_date: None,
-                days: Days::empty(),
-                bank_holiday: None,
-                status: None,
-                category: None,
-                identity: None,
-                headcode: None,
-                service_code: None,
-                speed: None,
-                seating_class: None,
-                sleepers: None,
-                reservations: None,
-                catering: None,
-                branding: None,
-                stp: Stp::New,
-            },
-        )
+            example.start_date().unwrap(),
+            NaiveDate::from_ymd(2019, 5, 25)
+        );
+        assert_eq!(example.end_date().unwrap(), None);
+        assert_eq!(example.days().unwrap(), Days::empty());
+        assert_eq!(example.bank_holiday().unwrap(), None);
+        assert_eq!(example.status().unwrap(), None);
+        assert_eq!(example.category().unwrap(), None);
+        assert_eq!(example.identity().unwrap(), None);
+        assert_eq!(example.headcode().unwrap(), None);
+        assert_eq!(example.service_code().unwrap(), None);
+        assert_eq!(example.speed().unwrap(), None);
+        assert_eq!(example.seating_class().unwrap(), None);
+        assert_eq!(example.sleepers().unwrap(), None);
+        assert_eq!(example.reservations().unwrap(), None);
+        assert_eq!(example.catering().unwrap(), None);
+        assert_eq!(example.branding().unwrap(), None);
+        assert_eq!(example.stp().unwrap(), Stp::New);
     }
 }

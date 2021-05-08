@@ -1,9 +1,9 @@
 use std::borrow::Cow;
 
 use bitflags::bitflags;
-use chrono::{offset::TimeZone, NaiveDate};
-use chrono::{Date, Duration, NaiveTime};
-use chrono_tz::{Europe::London, Tz};
+use chrono::NaiveDate;
+use chrono::{Duration, NaiveTime};
+
 use nom::{
     branch::alt, bytes::streaming::*, character::is_digit, character::streaming::char,
     combinator::map, IResult,
@@ -67,24 +67,21 @@ pub fn mandatory_str<'a>(
     mandatory(field_name, string(nchars))
 }
 
-pub(crate) fn date_yymmdd<'a>() -> impl Fn(&'a [u8]) -> IResult<&'a [u8], Date<Tz>, CIFParseError> {
-    move |i: &'a [u8]| -> IResult<&'a [u8], Date<Tz>, CIFParseError> {
-        let (i, yy) = take_while_m_n(2usize, 2, is_digit)(i)?;
-        let (i, mm) = take_while_m_n(2usize, 2, is_digit)(i)?;
-        let (i, dd) = take_while_m_n(2usize, 2, is_digit)(i)?;
-        let dt = London.ymd(
-            lexical_core::parse::<i32>(yy).map_err(CIFParseError::from_unrecoverable)? + 2000,
-            lexical_core::parse(mm).map_err(CIFParseError::from_unrecoverable)?,
-            lexical_core::parse(dd).map_err(CIFParseError::from_unrecoverable)?,
-        );
-        Ok((i, dt))
-    }
-}
-
 pub(crate) fn ddmmyy_from_slice(slice: &[u8]) -> Result<NaiveDate, CIFParseError> {
     let dd = lexical_core::parse(&slice[0..2])?;
     let mm = lexical_core::parse(&slice[2..4])?;
     let yy: i32 = lexical_core::parse(&slice[4..6])?;
+    if let Some(dt) = NaiveDate::from_ymd_opt(yy + 2000, mm, dd) {
+        Ok(dt)
+    } else {
+        Err(CIFParseError::InvalidTime(Cow::from(slice.to_owned())))
+    }
+}
+
+pub(crate) fn yymmdd_from_slice(slice: &[u8]) -> Result<NaiveDate, CIFParseError> {
+    let yy: i32 = lexical_core::parse(&slice[0..2])?;
+    let mm = lexical_core::parse(&slice[2..4])?;
+    let dd = lexical_core::parse(&slice[4..6])?;
     if let Some(dt) = NaiveDate::from_ymd_opt(yy + 2000, mm, dd) {
         Ok(dt)
     } else {
@@ -132,20 +129,7 @@ pub fn opt_time_half<'a>(
     alt((map(time_half(), Some), map(tag("     "), |_| None)))
 }
 
-#[inline(never)]
-pub fn days<'a>() -> impl Fn(&'a [u8]) -> IResult<&'a [u8], Days, CIFParseError> {
-    #[inline(never)]
-    move |i: &'a [u8]| -> IResult<&'a [u8], Days, CIFParseError> {
-        fn is_bit_char(c: u8) -> bool {
-            c == b' ' || c == b'0' || c == b'1'
-        }
-        let (i, slice) = take_while_m_n(7, 7, is_bit_char)(i)?;
-        let days = days_from_slice(slice).map_err(CIFParseError::from_unrecoverable)?;
-        Ok((i, days))
-    }
-}
-
-fn days_from_slice(slice: &[u8]) -> Result<Days, CIFParseError> {
+pub(crate) fn days_from_slice(slice: &[u8]) -> Result<Days, CIFParseError> {
     const DAYS: &[Days] = &[
         Days::MON,
         Days::TUE,
@@ -253,13 +237,6 @@ mod test {
     }
 
     #[test]
-    fn date_should_parse_yymmdd() {
-        let s = b"150306!!";
-        let (rest, result) = date_yymmdd()(s).expect("parse");
-        assert_eq!((rest, result), (b"!!" as &[u8], London.ymd(2015, 3, 6)));
-    }
-
-    #[test]
     fn time_should_parse_hhmm() {
         let s = b"2151!!";
         let (rest, result) = time()(s).expect("parse");
@@ -291,13 +268,10 @@ mod test {
     #[test]
     fn days_should_parse_bitwise_weekdays() {
         let s = b"1111100";
-        let (rest, result) = days()(s).expect("parse");
+        let result = days_from_slice(s).expect("parse");
         assert_eq!(
-            (rest, result),
-            (
-                b"" as &[u8],
-                Days::MON | Days::TUE | Days::WED | Days::THU | Days::FRI
-            )
+            result,
+            Days::MON | Days::TUE | Days::WED | Days::THU | Days::FRI
         );
     }
     #[test]
