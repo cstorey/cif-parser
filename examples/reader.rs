@@ -28,7 +28,7 @@ fn main() -> Result<()> {
         let mut rdr = Reader::new(fp);
 
         while let Some(()) = rdr.read_next(|r| {
-            debug!("Ok: {:#?}", r);
+            println!("{:?}", r);
         })? {
             let off = rdr.get_ref().seek(SeekFrom::Current(0))?;
             debug!(
