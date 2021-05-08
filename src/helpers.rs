@@ -303,19 +303,19 @@ mod test {
     #[test]
     fn days_should_parse_bitwise_saturday() {
         let s = b"0000010";
-        let (rest, result) = days()(s).expect("parse");
-        assert_eq!((rest, result), (b"" as &[u8], Days::SAT));
+        let result = days_from_slice(s).expect("parse");
+        assert_eq!(result, Days::SAT);
     }
     #[test]
     fn days_should_parse_bitwise_sunday() {
         let s = b"0000001";
-        let (rest, result) = days()(s).expect("parse");
-        assert_eq!((rest, result), (b"" as &[u8], Days::SUN));
+        let result = days_from_slice(s).expect("parse");
+        assert_eq!(result, Days::SUN);
     }
     #[test]
     fn days_should_parse_empty() {
         let s = b"       !";
-        let (rest, result) = days()(s).expect("parse");
-        assert_eq!((rest, result), (b"!" as &[u8], Days::empty()));
+        let result = days_from_slice(s).expect("parse");
+        assert_eq!(result, Days::empty());
     }
 }
