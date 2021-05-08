@@ -12,6 +12,10 @@ enum Kind {
     TiplocAmend,
     Association,
     Schedule,
+    ScheduleExtra,
+    LocationOrigin,
+    LocationIntermediate,
+    LocationTerminating,
     ChangeEnRoute,
     Trailer,
     Unrecognised(String),
@@ -29,6 +33,14 @@ fn should_read_file() {
             Record::TiplocAmend(_) => *nitems.entry(Kind::TiplocAmend).or_default() += 1,
             Record::Association(_) => *nitems.entry(Kind::Association).or_default() += 1,
             Record::Schedule(_) => *nitems.entry(Kind::Schedule).or_default() += 1,
+            Record::ScheduleExtra(_) => *nitems.entry(Kind::ScheduleExtra).or_default() += 1,
+            Record::LocationOrigin(_) => *nitems.entry(Kind::LocationOrigin).or_default() += 1,
+            Record::LocationIntermediate(_) => {
+                *nitems.entry(Kind::LocationIntermediate).or_default() += 1
+            }
+            Record::LocationTerminating(_) => {
+                *nitems.entry(Kind::LocationTerminating).or_default() += 1
+            }
             Record::ChangeEnRoute(_) => *nitems.entry(Kind::ChangeEnRoute).or_default() += 1,
             Record::Trailer(_) => *nitems.entry(Kind::Trailer).or_default() += 1,
             Record::Unrecognised(s) => {
@@ -44,6 +56,11 @@ fn should_read_file() {
     expected.insert(Kind::Header, 1);
     expected.insert(Kind::Association, 62);
     expected.insert(Kind::Schedule, 113);
+    expected.insert(Kind::ScheduleExtra, 70);
+    expected.insert(Kind::LocationOrigin, 70);
+    expected.insert(Kind::LocationIntermediate, 2545);
+    expected.insert(Kind::LocationTerminating, 70);
+    expected.insert(Kind::ChangeEnRoute, 12);
     expected.insert(Kind::Trailer, 1);
 
     assert_eq!(expected, nitems);
