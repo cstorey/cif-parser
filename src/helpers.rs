@@ -84,19 +84,32 @@ pub(crate) fn yymmdd_from_slice(slice: &[u8]) -> Result<NaiveDate, CIFParseError
 
 pub fn time<'a>() -> impl Fn(&'a [u8]) -> IResult<&'a [u8], NaiveTime, CIFParseError> {
     move |i: &'a [u8]| -> IResult<&'a [u8], NaiveTime, CIFParseError> {
-        let start = i;
-        let (i, hh) = take_while_m_n(2usize, 2, is_digit)(i)?;
-        let (i, mm) = take_while_m_n(2usize, 2, is_digit)(i)?;
+        let (i, hhmm) = take_while_m_n(2usize, 4, is_digit)(i)?;
 
-        let dt = NaiveTime::from_hms_opt(
-            lexical_core::parse(hh).map_err(CIFParseError::from_unrecoverable)?,
-            lexical_core::parse(mm).map_err(CIFParseError::from_unrecoverable)?,
-            0,
-        )
-        .ok_or_else(|| CIFParseError::InvalidTime(start.into()))
-        .map_err(CIFParseError::from_unrecoverable)?;
+        let dt = time_from_slice(hhmm).map_err(CIFParseError::from_unrecoverable)?;
         Ok((i, dt))
     }
+}
+
+pub(crate) fn time_from_slice(slice: &[u8]) -> Result<NaiveTime, CIFParseError> {
+    let hh = &slice[0..2];
+    let mm = &slice[2..4];
+    let dt = NaiveTime::from_hms_opt(lexical_core::parse(hh)?, lexical_core::parse(mm)?, 0)
+        .ok_or_else(|| CIFParseError::InvalidTime(Cow::from(slice)))?;
+    Ok(dt)
+}
+
+pub(crate) fn time_half_from_slice(slice: &[u8]) -> Result<NaiveTime, CIFParseError> {
+    let hh = lexical_core::parse(&slice[0..2])?;
+    let mm = lexical_core::parse(&slice[2..4])?;
+    let ss = match slice[4] {
+        b' ' => 0,
+        b'H' => 30,
+        _ => return Err(CIFParseError::InvalidTime(Cow::from(slice))),
+    };
+    let dt = NaiveTime::from_hms_opt(hh, mm, ss)
+        .ok_or_else(|| CIFParseError::InvalidTime(slice.into()))?;
+    Ok(dt)
 }
 
 pub fn opt_time<'a>() -> impl FnMut(&'a [u8]) -> IResult<&'a [u8], Option<NaiveTime>, CIFParseError>

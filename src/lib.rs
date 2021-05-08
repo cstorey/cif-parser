@@ -43,7 +43,7 @@ pub enum Record<'a> {
     Association(Association),
     Schedule(BasicSchedule),
     ScheduleExtra(ScheduleExtra),
-    LocationOrigin(LocationOrigin<'a>),
+    LocationOrigin(LocationOrigin),
     LocationIntermediate(LocationIntermediate<'a>),
     LocationTerminating(LocationTerminating<'a>),
     ChangeEnRoute(ChangeEnRoute<'a>),
@@ -68,10 +68,6 @@ pub enum Stp {
 
 pub fn parse<'a>(i: &'a [u8]) -> IResult<&'a [u8], Record, CIFParseError> {
     let p = alt((
-        map(
-            location_origin::parse_location_origin(),
-            Record::LocationOrigin,
-        ),
         map(
             location_intermediate::parse_location_intermediate(),
             Record::LocationIntermediate,
