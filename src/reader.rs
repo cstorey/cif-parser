@@ -69,12 +69,6 @@ impl<R: Read> Reader<R> {
         loop {
             let buf = self.buf.buf();
             match parse(buf) {
-                Ok((rest, Record::Unrecognised(val))) => {
-                    warn!("Unrecognised: {:#?}", val);
-                    let consumed = buf.offset(rest);
-                    self.buf.consume(consumed);
-                }
-
                 Ok((rest, val)) => {
                     let consumed = buf.offset(rest);
 
