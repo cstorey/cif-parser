@@ -5,7 +5,6 @@ const SNIPPET_LEN: usize = 240;
 #[derive(Debug)]
 pub enum CIFParseError<'a> {
     Utf8(std::str::Utf8Error),
-    MandatoryFieldMissing(&'static str, Cow<'a, [u8]>),
     InvalidNumber(lexical_core::Error),
     InvalidTime(Cow<'a, [u8]>),
     InvalidItem,
@@ -15,12 +14,6 @@ impl fmt::Display for CIFParseError<'_> {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
             CIFParseError::Utf8(ref err) => writeln!(fmt, "UTF conversion: {}", err),
-            CIFParseError::MandatoryFieldMissing(field_name, s) => writeln!(
-                fmt,
-                "Mandatory field {} missing at: {}",
-                field_name,
-                as_snippet(s)
-            ),
             CIFParseError::InvalidNumber(e) => writeln!(fmt, "Invalid number: {:?}", e),
             CIFParseError::InvalidTime(s) => writeln!(fmt, "Invalid time: {}", as_snippet(s)),
             CIFParseError::InvalidItem => writeln!(fmt, "Invalid item"),
