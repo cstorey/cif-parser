@@ -1,13 +1,9 @@
 use std::{borrow::Cow, fmt};
 
-use log::*;
-use nom::error::*;
-
 const SNIPPET_LEN: usize = 240;
 
 #[derive(Debug)]
 pub enum CIFParseError<'a> {
-    NomVerbose(VerboseError<Cow<'a, [u8]>>),
     Utf8(std::str::Utf8Error),
     MandatoryFieldMissing(&'static str, Cow<'a, [u8]>),
     InvalidNumber(lexical_core::Error),
@@ -15,26 +11,9 @@ pub enum CIFParseError<'a> {
     InvalidItem,
 }
 
-impl<'a> CIFParseError<'a> {
-    pub(crate) fn from_unrecoverable<E>(e: E) -> nom::Err<Self>
-    where
-        Self: From<E>,
-    {
-        let e: Self = e.into();
-        nom::Err::Failure(e)
-    }
-}
-
 impl fmt::Display for CIFParseError<'_> {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            CIFParseError::NomVerbose(ref err) => {
-                writeln!(fmt, "NomError: ")?;
-                for &(ref s, ref kind) in err.errors.iter() {
-                    writeln!(fmt, "Err: {:?}: {}", kind, as_snippet(s))?;
-                }
-                Ok(())
-            }
             CIFParseError::Utf8(ref err) => writeln!(fmt, "UTF conversion: {}", err),
             CIFParseError::MandatoryFieldMissing(field_name, s) => writeln!(
                 fmt,
@@ -45,38 +24,6 @@ impl fmt::Display for CIFParseError<'_> {
             CIFParseError::InvalidNumber(e) => writeln!(fmt, "Invalid number: {:?}", e),
             CIFParseError::InvalidTime(s) => writeln!(fmt, "Invalid time: {}", as_snippet(s)),
             CIFParseError::InvalidItem => writeln!(fmt, "Invalid item"),
-        }
-    }
-}
-
-impl<'a> nom::error::ParseError<&'a [u8]> for CIFParseError<'a> {
-    fn from_error_kind(i: &'a [u8], kind: nom::error::ErrorKind) -> Self {
-        let vb = VerboseError::from_error_kind(i.into(), kind);
-        CIFParseError::NomVerbose(vb)
-    }
-
-    fn append(i: &'a [u8], kind: nom::error::ErrorKind, other: Self) -> Self {
-        match other {
-            CIFParseError::NomVerbose(vb) => {
-                let vb = VerboseError::append(i.into(), kind, vb);
-                CIFParseError::NomVerbose(vb)
-            }
-            e @ CIFParseError::Utf8(_) => {
-                warn!("Dropping UTF error: {}", e);
-                Self::from_error_kind(i, kind)
-            }
-            CIFParseError::MandatoryFieldMissing(_, _) => {
-                unimplemented!("CIFParseError::append: MandatoryFieldMissing")
-            }
-            CIFParseError::InvalidNumber(e) => {
-                unimplemented!("CIFParseError::append: InvalidNumber: {:?}", e)
-            }
-            CIFParseError::InvalidTime(e) => {
-                unimplemented!("CIFParseError::append: InvalidTime: {:?}", e)
-            }
-            CIFParseError::InvalidItem => {
-                unimplemented!("CIFParseError::append: InvalidItem")
-            }
         }
     }
 }

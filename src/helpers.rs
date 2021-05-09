@@ -4,8 +4,6 @@ use bitflags::bitflags;
 use chrono::NaiveDate;
 use chrono::NaiveTime;
 
-use nom::{bytes::streaming::*, IResult};
-
 use crate::errors::CIFParseError;
 
 bitflags! {
@@ -20,18 +18,6 @@ bitflags! {
     }
 }
 
-pub fn string<'a>(
-    nchars: usize,
-) -> impl Fn(&'a [u8]) -> IResult<&'a [u8], Option<&'a str>, CIFParseError> {
-    move |i: &'a [u8]| -> IResult<&'a [u8], Option<&'a str>, CIFParseError> {
-        let (rest, val) = take(nchars)(i)?;
-        Ok((
-            rest,
-            string_of_slice_opt(val).map_err(CIFParseError::from_unrecoverable)?,
-        ))
-    }
-}
-
 pub(crate) fn string_of_slice(val: &[u8]) -> Result<&str, std::str::Utf8Error> {
     let s = std::str::from_utf8(val)?.trim_end();
     Ok(s)
@@ -39,22 +25,6 @@ pub(crate) fn string_of_slice(val: &[u8]) -> Result<&str, std::str::Utf8Error> {
 pub(crate) fn string_of_slice_opt(val: &[u8]) -> Result<Option<&str>, std::str::Utf8Error> {
     let s = string_of_slice(val)?;
     Ok(Some(s).filter(|val| !val.is_empty()))
-}
-
-pub fn mandatory<'a, T>(
-    field_name: &'static str,
-    inner: impl Fn(&'a [u8]) -> IResult<&'a [u8], Option<T>, CIFParseError>,
-) -> impl Fn(&'a [u8]) -> IResult<&'a [u8], T, CIFParseError> {
-    move |i: &'a [u8]| -> IResult<&'a [u8], T, CIFParseError> {
-        match inner(i)? {
-            (rest, Some(val)) => Ok((rest, val)),
-
-            (_rest, None) => Err(nom::Err::Error(CIFParseError::MandatoryFieldMissing(
-                field_name,
-                i.into(),
-            ))),
-        }
-    }
 }
 
 pub(crate) fn ddmmyy_from_slice(slice: &[u8]) -> Result<NaiveDate, CIFParseError> {
@@ -147,30 +117,6 @@ mod test {
     use super::*;
 
     #[test]
-    fn string_parser_should_read_value() {
-        // string of length 3;
-        let p = string(3);
-        let (rest, result) = p(b"ABC").expect("should parse");
-        assert_eq!((rest, result), (b"" as &[u8], Some("ABC")));
-    }
-
-    #[test]
-    fn string_parser_should_read_part() {
-        // string of length 3;
-        let p = string(3);
-        let (rest, result) = p(b"AB ").expect("should parse");
-        assert_eq!((rest, result), (b"" as &[u8], Some("AB")));
-    }
-
-    #[test]
-    fn string_parser_should_empty() {
-        // string of length 3;
-        let p = string(3);
-        let (rest, result) = p(b"   ").expect("should parse");
-        assert_eq!((rest, result), (b"" as &[u8], None));
-    }
-
-    #[test]
     fn string_of_slice_should_read_value() {
         // string of length 3;
         let result = string_of_slice_opt(b"ABC").expect("should parse");
@@ -189,39 +135,6 @@ mod test {
         // string of length 3;
         let result = string_of_slice_opt(b"   ").expect("should parse");
         assert_eq!(result, None)
-    }
-
-    #[test]
-    fn string_of_slice_return_remainder() {
-        let p = string(3);
-        let (rest, result) = p(b"A  DEF").expect("should parse");
-        assert_eq!((rest, result), (b"DEF" as &[u8], Some("A")));
-    }
-
-    #[test]
-    fn mandatory_should_return_ok_on_success() {
-        fn inner<'a>(i: &'a [u8]) -> IResult<&'a [u8], Option<()>, CIFParseError> {
-            Ok((i, Some(())))
-        }
-        let p = mandatory("field", inner);
-        let (rest, result) = p(b"Hi").expect("parse");
-        assert_eq!((rest, result), (b"Hi" as &[u8], ()));
-    }
-
-    #[test]
-    fn mandatory_includes_field_name_in_error() {
-        fn inner<'a>(i: &'a [u8]) -> IResult<&'a [u8], Option<()>, CIFParseError> {
-            Ok((i, None))
-        }
-        let p = mandatory("field_name", inner);
-
-        let err = p(b"  ").expect_err("should fail");
-        assert!(
-            format!("{:?}", err).contains("field_name"),
-            "Error {:?} should contain field name: {:?}",
-            err,
-            "field_name"
-        )
     }
 
     #[test]

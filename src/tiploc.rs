@@ -1,19 +1,7 @@
 use std::{borrow::Cow, fmt};
 
-use nom::IResult;
-
-use crate::errors::CIFParseError;
-use crate::helpers::{mandatory, string};
-
 #[derive(Clone, Eq, PartialEq)]
 pub struct Tiploc<'a>(Cow<'a, str>);
-
-impl<'a> Tiploc<'a> {
-    pub fn parse(i: &'a [u8]) -> IResult<&'a [u8], Self, CIFParseError> {
-        let (i, name) = mandatory("tiploc", string(7usize))(i)?;
-        Ok((i, Tiploc(name.into())))
-    }
-}
 
 impl<'a> Tiploc<'a> {
     pub fn of_str(s: &'a str) -> Self {
