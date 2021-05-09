@@ -1,6 +1,7 @@
-use std::io::Read;
+use std::{convert::identity, io::Read};
 
 use bytes::BytesMut;
+use fallible_iterator::FallibleIterator;
 use log::*;
 use thiserror::Error;
 
@@ -110,6 +111,16 @@ impl<R: Read> Reader<R> {
 
     pub fn get_ref(&self) -> &R {
         &self.src.inner
+    }
+}
+
+impl<R: Read> FallibleIterator for Reader<R> {
+    type Item = Record;
+
+    type Error = ReaderError;
+
+    fn next(&mut self) -> Result<Option<Self::Item>, Self::Error> {
+        self.read_next(identity)
     }
 }
 
