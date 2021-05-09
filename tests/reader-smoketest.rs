@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::{cmp, collections::BTreeMap};
 
 use cif_parser::{Reader, Record};
 // This file just has to be larger than our default buffer size, to show that
@@ -45,9 +45,11 @@ fn should_read_file() {
             }
             Record::ChangeEnRoute(_) => *nitems.entry(Kind::ChangeEnRoute).or_default() += 1,
             Record::Trailer(_) => *nitems.entry(Kind::Trailer).or_default() += 1,
-            Record::Unrecognised(s) => {
+            Record::Unrecognised(bs) => {
                 *nitems
-                    .entry(Kind::Unrecognised(s[0..2].to_owned()))
+                    .entry(Kind::Unrecognised(
+                        String::from_utf8_lossy(&bs[0..cmp::min(bs.len(), 2)]).into_owned(),
+                    ))
                     .or_default() += 1
             }
         })

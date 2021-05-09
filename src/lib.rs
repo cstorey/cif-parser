@@ -1,6 +1,4 @@
-use nom::{
-    bytes::streaming::take, character::streaming::*, combinator::map, sequence::terminated, IResult,
-};
+use bytes::Bytes;
 
 mod association;
 mod basic_schedule;
@@ -35,7 +33,7 @@ pub use trailer::Trailer;
 
 #[allow(clippy::large_enum_variant)]
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub enum Record<'a> {
+pub enum Record {
     Header(Header),
     TiplocInsert(TiplocInsert),
     TiplocAmend(TiplocAmend),
@@ -47,7 +45,7 @@ pub enum Record<'a> {
     LocationTerminating(LocationTerminating),
     ChangeEnRoute(ChangeEnRoute),
     Trailer(Trailer),
-    Unrecognised(&'a str),
+    Unrecognised(Bytes),
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -63,20 +61,4 @@ pub enum Stp {
     New,
     Overlay,
     Permanent,
-}
-
-pub fn parse<'a>(i: &'a [u8]) -> IResult<&'a [u8], Record, CIFParseError> {
-    let p = map(parse_unrecognised(), Record::Unrecognised);
-    terminated(p, char('\n'))(i)
-}
-
-fn parse_unrecognised<'a>() -> impl Fn(&'a [u8]) -> IResult<&'a [u8], &'a str, CIFParseError> {
-    |i: &'a [u8]| -> IResult<&'a [u8], &'a str, CIFParseError> {
-        let (i, other) = take(80usize)(i)?;
-
-        Ok((
-            i,
-            std::str::from_utf8(other).map_err(CIFParseError::from_unrecoverable)?,
-        ))
-    }
 }

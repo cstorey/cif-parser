@@ -1,12 +1,11 @@
 use std::io::Read;
 
-use bytes::{Buf, BytesMut};
+use bytes::BytesMut;
 use log::*;
-use nom::{Err, Offset};
 use thiserror::Error;
 
 use crate::{
-    parse, Association, BasicSchedule, CIFParseError, ChangeEnRoute, Header, LocationIntermediate,
+    Association, BasicSchedule, CIFParseError, ChangeEnRoute, Header, LocationIntermediate,
     LocationOrigin, LocationTerminating, Record, ScheduleExtra, TiplocAmend, TiplocInsert, Trailer,
 };
 
@@ -62,12 +61,9 @@ impl<R: Read> Reader<R> {
         Self { src, buf }
     }
 
-    pub fn read_next<T>(
-        &mut self,
-        mut f: impl for<'a> FnMut(Record<'a>) -> T,
-    ) -> ReaderResult<Option<T>> {
+    pub fn read_next<T>(&mut self, mut f: impl FnMut(Record) -> T) -> ReaderResult<Option<T>> {
+        const SNIPPET: usize = 128;
         loop {
-            const SNIPPET: usize = 128;
             if log::log_enabled!(log::Level::Trace) {
                 trace!("Top of loop: buf.len(): {:?}", self.buf.len());
 
@@ -84,7 +80,9 @@ impl<R: Read> Reader<R> {
             if self.buf.len() < CIF_LINE_LEN {
                 debug!("Need more");
                 if !self.src.refill_until_eof(&mut self.buf)? {
-                    break;
+                    return Ok(None);
+                } else {
+                    continue;
                 }
             }
 
@@ -156,36 +154,14 @@ impl<R: Read> Reader<R> {
                     let res = f(val);
                     return Ok(Some(res));
                 }
-                _ => {}
-            }
-
-            let res = parse(&*self.buf);
-            trace!("Result => {:?}", res);
-            match res {
-                Ok((rest, val)) => {
-                    let consumed = self.buf.offset(rest);
-                    debug!("Consumed: {:?}", consumed);
-
+                _ => {
+                    let record = self.buf.split_to(CIF_LINE_LEN).freeze();
+                    let val = Record::Unrecognised(record);
                     let res = f(val);
-
-                    trace!("Pre advance: buf.len(): {:?}", self.buf.len());
-                    self.buf.advance(consumed);
-                    trace!("Post advance: buf.len(): {:?}", self.buf.len());
                     return Ok(Some(res));
                 }
-
-                Err(Err::Incomplete(need)) => {
-                    debug!("Need more: {:?}", need);
-                    if !self.src.refill_until_eof(&mut self.buf)? {
-                        break;
-                    }
-                }
-                Err(Err::Error(err)) => return Err(ReaderError::from(err)),
-                Err(Err::Failure(err)) => return Err(ReaderError::from(err)),
-            };
+            }
         }
-
-        Ok(None)
     }
 
     pub fn get_ref(&self) -> &R {
