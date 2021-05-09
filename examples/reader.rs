@@ -5,6 +5,7 @@ use std::{
 };
 
 use anyhow::Result;
+use fallible_iterator::FallibleIterator;
 use log::*;
 use structopt::StructOpt;
 
@@ -27,9 +28,8 @@ fn main() -> Result<()> {
         let size = fp.metadata()?.len();
         let mut rdr = Reader::new(fp);
 
-        while let Some(()) = rdr.read_next(|r| {
+        while let Some(r) = rdr.next()? {
             println!("{:?}", r);
-        })? {
             let off = rdr.get_ref().seek(SeekFrom::Current(0))?;
             debug!(
                 "{}/{}; {:.2}%",
