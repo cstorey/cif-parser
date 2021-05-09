@@ -1,4 +1,4 @@
-use std::{borrow::Cow, fmt};
+use std::fmt;
 
 use bytes::Bytes;
 use chrono::{NaiveDate, NaiveDateTime};
@@ -35,8 +35,8 @@ impl Header {
         if let Some(dt) = NaiveDate::from_ymd_opt(yy + 2000, mm, dd) {
             Ok(dt.and_hms(h, m, 0))
         } else {
-            Err(CIFParseError::InvalidTime(Cow::from(
-                self.record[22..32].to_owned(),
+            Err(CIFParseError::InvalidTime(Bytes::copy_from_slice(
+                &self.record[22..32],
             )))
         }
     }

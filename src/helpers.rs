@@ -1,6 +1,5 @@
-use std::borrow::Cow;
-
 use bitflags::bitflags;
+use bytes::Bytes;
 use chrono::NaiveDate;
 use chrono::NaiveTime;
 
@@ -34,7 +33,7 @@ pub(crate) fn ddmmyy_from_slice(slice: &[u8]) -> Result<NaiveDate, CIFParseError
     if let Some(dt) = NaiveDate::from_ymd_opt(yy + 2000, mm, dd) {
         Ok(dt)
     } else {
-        Err(CIFParseError::InvalidTime(Cow::from(slice.to_owned())))
+        Err(CIFParseError::InvalidTime(Bytes::copy_from_slice(slice)))
     }
 }
 
@@ -45,7 +44,7 @@ pub(crate) fn yymmdd_from_slice(slice: &[u8]) -> Result<NaiveDate, CIFParseError
     if let Some(dt) = NaiveDate::from_ymd_opt(yy + 2000, mm, dd) {
         Ok(dt)
     } else {
-        Err(CIFParseError::InvalidTime(Cow::from(slice.to_owned())))
+        Err(CIFParseError::InvalidTime(Bytes::copy_from_slice(slice)))
     }
 }
 
@@ -53,7 +52,7 @@ pub(crate) fn time_from_slice(slice: &[u8]) -> Result<NaiveTime, CIFParseError> 
     let hh = &slice[0..2];
     let mm = &slice[2..4];
     let dt = NaiveTime::from_hms_opt(lexical_core::parse(hh)?, lexical_core::parse(mm)?, 0)
-        .ok_or_else(|| CIFParseError::InvalidTime(Cow::from(slice)))?;
+        .ok_or_else(|| CIFParseError::InvalidTime(Bytes::copy_from_slice(slice)))?;
     Ok(dt)
 }
 
@@ -72,10 +71,10 @@ pub(crate) fn time_half_from_slice(slice: &[u8]) -> Result<NaiveTime, CIFParseEr
     let ss = match slice[4] {
         b' ' => 0,
         b'H' => 30,
-        _ => return Err(CIFParseError::InvalidTime(Cow::from(slice))),
+        _ => return Err(CIFParseError::InvalidTime(Bytes::copy_from_slice(slice))),
     };
     let dt = NaiveTime::from_hms_opt(hh, mm, ss)
-        .ok_or_else(|| CIFParseError::InvalidTime(slice.into()))?;
+        .ok_or_else(|| CIFParseError::InvalidTime(Bytes::copy_from_slice(slice)))?;
     Ok(dt)
 }
 pub(crate) fn time_half_from_slice_opt(slice: &[u8]) -> Result<Option<NaiveTime>, CIFParseError> {
