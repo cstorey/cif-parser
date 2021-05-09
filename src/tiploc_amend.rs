@@ -1,77 +1,96 @@
-use nom::{bytes::streaming::*, character::is_space, IResult};
+use std::fmt;
 
-use crate::errors::CIFParseError;
-use crate::helpers::{mandatory_str, string};
+use bytes::Bytes;
 
-#[derive(Debug, Clone, Eq, PartialEq)]
-pub struct TiplocAmend<'a> {
-    pub tiploc: &'a str,
-    pub nlc: &'a str,
-    pub nlc_check: &'a str,
-    pub tps_description: &'a str,
-    pub stanox: &'a str,
-    pub crs: Option<&'a str>,
-    pub nlc_desc: Option<&'a str>,
-    pub new_tiploc: Option<&'a str>,
+use crate::{
+    errors::CIFParseError,
+    helpers::{string_of_slice, string_of_slice_opt},
+    Tiploc,
+};
+
+#[derive(Clone, Eq, PartialEq)]
+pub struct TiplocAmend {
+    record: Bytes,
 }
 
-pub(super) fn parse_tiploc_amend<'a>(
-) -> impl Fn(&'a [u8]) -> IResult<&'a [u8], TiplocAmend, CIFParseError> {
-    |i: &'a [u8]| -> IResult<&'a [u8], TiplocAmend, CIFParseError> {
-        let (i, _) = tag("TA")(i)?;
-        let (i, tiploc) = mandatory_str("tiploc", 7usize)(i)?;
-        let (i, _) = mandatory_str("_", 2usize)(i)?; // `capitals`
-        let (i, nlc) = mandatory_str("nlc", 6usize)(i)?;
-        let (i, nlc_check) = mandatory_str("nlc_check", 1usize)(i)?;
-        let (i, tps_description) = mandatory_str("tps_description", 26usize)(i)?;
-        let (i, stanox) = mandatory_str("stanox", 5usize)(i)?;
-        let (i, _po_code) = mandatory_str("_po_code", 4usize)(i)?;
-        let (i, crs) = string(3usize)(i)?;
-        let (i, nlc_desc) = string(16usize)(i)?;
-        let (i, new_tiploc) = string(7usize)(i)?;
-        let (i, _spare) = take_while_m_n(1, 1, is_space)(i)?;
+impl TiplocAmend {
+    pub(crate) fn from_record(record: Bytes) -> Self {
+        Self { record }
+    }
+    pub fn buf(&self) -> &Bytes {
+        &self.record
+    }
 
-        Ok((
-            i,
-            TiplocAmend {
-                tiploc,
-                nlc,
-                nlc_check,
-                tps_description,
-                stanox,
-                crs,
-                nlc_desc,
-                new_tiploc,
-            },
-        ))
+    pub fn tiploc(&self) -> Result<Tiploc, CIFParseError> {
+        let s = string_of_slice(&self.record[2..9])?;
+        Ok(Tiploc::of_string(s.to_owned()))
+    }
+    pub fn nlc(&self) -> Result<&str, CIFParseError> {
+        Ok(string_of_slice(&self.record[11..17])?)
+    }
+    pub fn nlc_check(&self) -> Result<&str, CIFParseError> {
+        Ok(string_of_slice(&self.record[17..18])?)
+    }
+    pub fn tps_description(&self) -> Result<&str, CIFParseError> {
+        let s = string_of_slice(&self.record[18..44])?;
+        Ok(s)
+    }
+    pub fn stanox(&self) -> Result<&str, CIFParseError> {
+        Ok(string_of_slice(&self.record[44..49])?)
+    }
+    pub fn crs(&self) -> Result<Option<&str>, CIFParseError> {
+        let s = string_of_slice_opt(&self.record[53..56])?;
+        Ok(s)
+    }
+    pub fn nlc_desc(&self) -> Result<Option<&str>, CIFParseError> {
+        let s = string_of_slice_opt(&self.record[56..72])?;
+        Ok(s)
+    }
+    pub fn new_tiploc(&self) -> Result<Option<Tiploc>, CIFParseError> {
+        if let Some(s) = string_of_slice_opt(&self.record[72..79])? {
+            Ok(Some(Tiploc::of_string(s.to_owned())))
+        } else {
+            Ok(None)
+        }
+    }
+}
+
+impl fmt::Debug for TiplocAmend {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut s = f.debug_struct("TiplocAmend");
+        s.field("tiploc", &self.tiploc());
+        s.field("nlc", &self.nlc());
+        s.field("nlc_check", &self.nlc_check());
+        s.field("tps_description", &self.tps_description());
+        s.field("stanox", &self.stanox());
+        s.field("crs", &self.crs());
+        s.field("nlc_desc", &self.nlc_desc());
+        s.field("new_tiploc", &self.new_tiploc());
+        s.finish()
     }
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
-    use nom::combinator::complete;
 
     #[test]
     fn should_parse_tiploc_amend_a() {
-        let mut p = complete(parse_tiploc_amend());
-        let hdr =
+        let amend =
             b"TAMBRK94200590970AMILLBROOK SIG E942        86536   0                           ";
-        assert_eq!(80, hdr.len());
-        let (rest, insert) = p(hdr).expect("parse_header");
-        assert_eq!(String::from_utf8_lossy(rest), "");
+        assert_eq!(80, amend.len());
+        let example = TiplocAmend::from_record(Bytes::from(amend.as_ref()));
+
+        assert_eq!(example.tiploc().expect("tiploc"), Tiploc::of_str("MBRK942"));
+        assert_eq!(example.nlc().expect("nlc"), "590970");
+        assert_eq!(example.nlc_check().expect("nlc_check"), "A");
         assert_eq!(
-            insert,
-            TiplocAmend {
-                tiploc: "MBRK942",
-                nlc: "590970",
-                nlc_check: "A",
-                tps_description: "MILLBROOK SIG E942",
-                stanox: "86536",
-                crs: None,
-                nlc_desc: None,
-                new_tiploc: None,
-            }
-        )
+            example.tps_description().expect("tps_description"),
+            "MILLBROOK SIG E942"
+        );
+        assert_eq!(example.stanox().expect("stanox"), "86536");
+        assert_eq!(example.crs().expect("crs"), None);
+        assert_eq!(example.nlc_desc().expect("nlc_desc"), None);
+        assert_eq!(example.new_tiploc().expect("new_tiploc"), None);
     }
 }

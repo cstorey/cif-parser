@@ -1,6 +1,7 @@
-use std::collections::BTreeMap;
+use std::{cmp, collections::BTreeMap};
 
 use cif_parser::{Reader, Record};
+use fallible_iterator::FallibleIterator;
 // This file just has to be larger than our default buffer size, to show that
 // we refill correctly.
 static SAMPLE_FILE: &[u8] = include_bytes!("sample-larger.cif");
@@ -12,34 +13,53 @@ enum Kind {
     TiplocAmend,
     Association,
     Schedule,
+    ScheduleExtra,
+    LocationOrigin,
+    LocationIntermediate,
+    LocationTerminating,
     ChangeEnRoute,
     Trailer,
-    Unrecognised,
+    Unrecognised(String),
 }
 
 #[test]
 fn should_read_file() {
-    let mut rdr = Reader::new(SAMPLE_FILE);
+    env_logger::try_init().unwrap_or_default();
 
     let mut nitems = BTreeMap::<Kind, usize>::new();
-    while let Some(()) = rdr
-        .read_next(|r| match r {
-            Record::Header(_) => *nitems.entry(Kind::Header).or_default() += 1,
-            Record::TiplocInsert(_) => *nitems.entry(Kind::TiplocInsert).or_default() += 1,
-            Record::TiplocAmend(_) => *nitems.entry(Kind::TiplocAmend).or_default() += 1,
-            Record::Association(_) => *nitems.entry(Kind::Association).or_default() += 1,
-            Record::Schedule(_) => *nitems.entry(Kind::Schedule).or_default() += 1,
-            Record::ChangeEnRoute(_) => *nitems.entry(Kind::ChangeEnRoute).or_default() += 1,
-            Record::Trailer(_) => *nitems.entry(Kind::Trailer).or_default() += 1,
-            Record::Unrecognised(_) => *nitems.entry(Kind::Unrecognised).or_default() += 1,
+
+    Reader::new(SAMPLE_FILE)
+        .map(|r| match r {
+            Record::Header(_) => Ok(Kind::Header),
+            Record::TiplocInsert(_) => Ok(Kind::TiplocInsert),
+            Record::TiplocAmend(_) => Ok(Kind::TiplocAmend),
+            Record::Association(_) => Ok(Kind::Association),
+            Record::Schedule(_) => Ok(Kind::Schedule),
+            Record::ScheduleExtra(_) => Ok(Kind::ScheduleExtra),
+            Record::LocationOrigin(_) => Ok(Kind::LocationOrigin),
+            Record::LocationIntermediate(_) => Ok(Kind::LocationIntermediate),
+            Record::LocationTerminating(_) => Ok(Kind::LocationTerminating),
+            Record::ChangeEnRoute(_) => Ok(Kind::ChangeEnRoute),
+            Record::Trailer(_) => Ok(Kind::Trailer),
+            Record::Unrecognised(bs) => Ok(Kind::Unrecognised(
+                String::from_utf8_lossy(&bs[0..cmp::min(bs.len(), 2)]).into_owned(),
+            )),
         })
-        .expect("read")
-    {}
+        .for_each(|kind| {
+            *nitems.entry(kind).or_default() += 1;
+            Ok(())
+        })
+        .expect("success");
 
     let mut expected = BTreeMap::new();
     expected.insert(Kind::Header, 1);
     expected.insert(Kind::Association, 62);
     expected.insert(Kind::Schedule, 113);
+    expected.insert(Kind::ScheduleExtra, 70);
+    expected.insert(Kind::LocationOrigin, 70);
+    expected.insert(Kind::LocationIntermediate, 2545);
+    expected.insert(Kind::LocationTerminating, 70);
+    expected.insert(Kind::ChangeEnRoute, 12);
     expected.insert(Kind::Trailer, 1);
 
     assert_eq!(expected, nitems);

@@ -1,7 +1,4 @@
-use nom::{
-    branch::alt, bytes::streaming::take, character::streaming::*, combinator::map,
-    sequence::terminated, IResult,
-};
+use bytes::Bytes;
 
 mod association;
 mod basic_schedule;
@@ -13,7 +10,6 @@ mod location_intermediate;
 mod location_origin;
 mod location_terminating;
 mod reader;
-mod schedule;
 mod schedule_extra;
 mod tiploc;
 mod tiploc_amend;
@@ -29,7 +25,6 @@ pub use location_intermediate::LocationIntermediate;
 pub use location_origin::LocationOrigin;
 pub use location_terminating::LocationTerminating;
 pub use reader::{Reader, ReaderError, ReaderResult};
-pub use schedule::Schedule;
 pub use schedule_extra::ScheduleExtra;
 pub use tiploc::Tiploc;
 pub use tiploc_amend::TiplocAmend;
@@ -38,15 +33,19 @@ pub use trailer::Trailer;
 
 #[allow(clippy::large_enum_variant)]
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub enum Record<'a> {
-    Header(Header<'a>),
-    TiplocInsert(TiplocInsert<'a>),
-    TiplocAmend(TiplocAmend<'a>),
-    Association(Association<'a>),
-    Schedule(Schedule<'a>),
-    ChangeEnRoute(ChangeEnRoute<'a>),
+pub enum Record {
+    Header(Header),
+    TiplocInsert(TiplocInsert),
+    TiplocAmend(TiplocAmend),
+    Association(Association),
+    Schedule(BasicSchedule),
+    ScheduleExtra(ScheduleExtra),
+    LocationOrigin(LocationOrigin),
+    LocationIntermediate(LocationIntermediate),
+    LocationTerminating(LocationTerminating),
+    ChangeEnRoute(ChangeEnRoute),
     Trailer(Trailer),
-    Unrecognised(&'a str),
+    Unrecognised(Bytes),
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -64,26 +63,21 @@ pub enum Stp {
     Permanent,
 }
 
-pub fn parse<'a>(i: &'a [u8]) -> IResult<&'a [u8], Record, CIFParseError> {
-    let p = alt((
-        map(header::parse_header(), Record::Header),
-        map(tiploc_insert::parse_tiploc_insert(), Record::TiplocInsert),
-        map(tiploc_amend::parse_tiploc_amend(), Record::TiplocAmend),
-        map(association::parse_association(), Record::Association),
-        map(schedule::parse_schedule(), Record::Schedule),
-        map(trailer::parse_trailer(), Record::Trailer),
-        map(parse_unrecognised(), Record::Unrecognised),
-    ));
-    terminated(p, char('\n'))(i)
-}
-
-fn parse_unrecognised<'a>() -> impl Fn(&'a [u8]) -> IResult<&'a [u8], &'a str, CIFParseError> {
-    |i: &'a [u8]| -> IResult<&'a [u8], &'a str, CIFParseError> {
-        let (i, other) = take(80usize)(i)?;
-
-        Ok((
-            i,
-            std::str::from_utf8(other).map_err(CIFParseError::from_unrecoverable)?,
-        ))
+impl Record {
+    pub fn buf(&self) -> &Bytes {
+        match self {
+            Record::Header(record) => record.buf(),
+            Record::TiplocInsert(record) => record.buf(),
+            Record::TiplocAmend(record) => record.buf(),
+            Record::Association(record) => record.buf(),
+            Record::Schedule(record) => record.buf(),
+            Record::ScheduleExtra(record) => record.buf(),
+            Record::LocationOrigin(record) => record.buf(),
+            Record::LocationIntermediate(record) => record.buf(),
+            Record::LocationTerminating(record) => record.buf(),
+            Record::ChangeEnRoute(record) => record.buf(),
+            Record::Trailer(record) => record.buf(),
+            Record::Unrecognised(record) => record,
+        }
     }
 }

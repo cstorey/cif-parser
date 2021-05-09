@@ -1,23 +1,16 @@
-use std::fmt;
-
-use nom::IResult;
-
-use crate::errors::CIFParseError;
-use crate::helpers::{mandatory, string};
+use std::{borrow::Cow, fmt};
 
 #[derive(Clone, Eq, PartialEq)]
-pub struct Tiploc<'a>(&'a str);
-
-impl<'a> Tiploc<'a> {
-    pub fn parse(i: &'a [u8]) -> IResult<&'a [u8], Self, CIFParseError> {
-        let (i, name) = mandatory("tiploc", string(7usize))(i)?;
-        Ok((i, Tiploc(name)))
-    }
-}
+pub struct Tiploc<'a>(Cow<'a, str>);
 
 impl<'a> Tiploc<'a> {
     pub fn of_str(s: &'a str) -> Self {
-        Tiploc(s)
+        Tiploc(s.into())
+    }
+}
+impl Tiploc<'static> {
+    pub fn of_string(s: String) -> Self {
+        Tiploc(s.into())
     }
 }
 
@@ -35,7 +28,7 @@ impl fmt::Display for Tiploc<'_> {
 
 impl<'a> From<&'a str> for Tiploc<'a> {
     fn from(tl: &'a str) -> Self {
-        Tiploc(tl)
+        Tiploc(tl.into())
     }
 }
 
