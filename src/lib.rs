@@ -62,3 +62,22 @@ pub enum Stp {
     Overlay,
     Permanent,
 }
+
+impl Record {
+    pub fn buf(&self) -> &Bytes {
+        match self {
+            Record::Header(record) => record.buf(),
+            Record::TiplocInsert(record) => record.buf(),
+            Record::TiplocAmend(record) => record.buf(),
+            Record::Association(record) => record.buf(),
+            Record::Schedule(record) => record.buf(),
+            Record::ScheduleExtra(record) => record.buf(),
+            Record::LocationOrigin(record) => record.buf(),
+            Record::LocationIntermediate(record) => record.buf(),
+            Record::LocationTerminating(record) => record.buf(),
+            Record::ChangeEnRoute(record) => record.buf(),
+            Record::Trailer(record) => record.buf(),
+            Record::Unrecognised(record) => record,
+        }
+    }
+}

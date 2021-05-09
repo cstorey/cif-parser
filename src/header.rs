@@ -21,6 +21,9 @@ impl Header {
     pub(crate) fn from_record(record: Bytes) -> Self {
         Header { record }
     }
+    pub fn buf(&self) -> &Bytes {
+        &self.record
+    }
 
     pub fn file_mainframe_identity(&self) -> Result<&str, CIFParseError> {
         Ok(std::str::from_utf8(&self.record[2..22])?)

@@ -9,6 +9,9 @@ impl Association {
     pub(crate) fn from_record(record: Bytes) -> Self {
         Self { record }
     }
+    pub fn buf(&self) -> &Bytes {
+        &self.record
+    }
 }
 
 #[cfg(test)]

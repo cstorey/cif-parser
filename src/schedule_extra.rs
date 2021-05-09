@@ -16,6 +16,9 @@ impl ScheduleExtra {
     pub(crate) fn from_record(record: Bytes) -> Self {
         Self { record }
     }
+    pub fn buf(&self) -> &Bytes {
+        &self.record
+    }
 
     pub fn uic_code(&self) -> Result<Option<&str>, CIFParseError> {
         Ok(string_of_slice_opt(&self.record[6..11])?)

@@ -16,6 +16,9 @@ impl ChangeEnRoute {
     pub(crate) fn from_record(record: Bytes) -> Self {
         Self { record }
     }
+    pub fn buf(&self) -> &Bytes {
+        &self.record
+    }
 
     pub fn tiploc(&self) -> Result<Tiploc, CIFParseError> {
         Ok(Tiploc::from(string_of_slice(&self.record[2..10])?))

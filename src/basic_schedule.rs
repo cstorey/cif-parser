@@ -17,6 +17,9 @@ impl BasicSchedule {
     pub(crate) fn from_record(record: Bytes) -> Self {
         Self { record }
     }
+    pub fn buf(&self) -> &Bytes {
+        &self.record
+    }
 
     pub fn transaction_type(&self) -> Result<TransactionType, CIFParseError> {
         match self.record[2] {
