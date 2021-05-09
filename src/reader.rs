@@ -1,4 +1,4 @@
-use std::{convert::identity, io::Read};
+use std::io::Read;
 
 use bytes::BytesMut;
 use fallible_iterator::FallibleIterator;
@@ -58,7 +58,7 @@ impl<R: Read> Reader<R> {
         Self { src, buf, offset }
     }
 
-    pub fn read_next<T>(&mut self, mut f: impl FnMut(Record) -> T) -> ReaderResult<Option<T>> {
+    pub fn read_next(&mut self) -> ReaderResult<Option<Record>> {
         const SNIPPET: usize = 128;
         loop {
             if log::log_enabled!(log::Level::Trace) {
@@ -104,8 +104,7 @@ impl<R: Read> Reader<R> {
             };
             self.offset += CIF_LINE_LEN;
 
-            let res = f(val);
-            return Ok(Some(res));
+            return Ok(Some(val));
         }
     }
 
@@ -120,7 +119,7 @@ impl<R: Read> FallibleIterator for Reader<R> {
     type Error = ReaderError;
 
     fn next(&mut self) -> Result<Option<Self::Item>, Self::Error> {
-        self.read_next(identity)
+        self.read_next()
     }
 }
 
@@ -138,7 +137,7 @@ mod test {
 
         let mut r = Reader::new(it);
 
-        let res = r.read_next(std::convert::identity);
+        let res = r.read_next();
         let e = res.unwrap_err();
         assert!(
             matches!(e, ReaderError::InvalidRecord(0)),
@@ -155,7 +154,7 @@ mod test {
 
         let mut r = Reader::new(it);
 
-        let res = r.read_next(std::convert::identity);
+        let res = r.read_next();
         let e = res.unwrap_err();
         assert!(
             matches!(e, ReaderError::InvalidRecord(0)),
@@ -174,8 +173,8 @@ mod test {
 
         let mut r = Reader::new(it);
 
-        let _ = r.read_next(std::convert::identity).unwrap();
-        let res = r.read_next(std::convert::identity);
+        let _ = r.read_next().unwrap();
+        let res = r.read_next();
         let e = res.unwrap_err();
         assert!(
             matches!(e, ReaderError::InvalidRecord(81)),
@@ -198,10 +197,10 @@ mod test {
 
         let mut r = Reader::new(it);
 
-        let _ = r.read_next(std::convert::identity).unwrap();
-        let _ = r.read_next(std::convert::identity).unwrap();
-        let _ = r.read_next(std::convert::identity).unwrap();
-        let res = r.read_next(std::convert::identity);
+        let _ = r.read_next().unwrap();
+        let _ = r.read_next().unwrap();
+        let _ = r.read_next().unwrap();
+        let res = r.read_next();
         let e = res.unwrap_err();
         assert!(
             matches!(e, ReaderError::InvalidRecord(243)),
