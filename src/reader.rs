@@ -22,6 +22,8 @@ pub enum ReaderError {
     UTF8(std::str::Utf8Error),
     #[error("Parsing number:")]
     InvalidNumber(lexical_core::Error),
+    #[error("Invalid record at byte: {}", 0)]
+    InvalidRecord(usize),
     #[error("Error:")]
     Other(String),
 }
@@ -35,6 +37,7 @@ struct Filler<R> {
 pub struct Reader<R> {
     src: Filler<R>,
     buf: BytesMut,
+    offset: usize,
 }
 
 impl<R: Read> Filler<R> {
@@ -58,7 +61,8 @@ impl<R: Read> Reader<R> {
     pub fn new(rdr: R) -> Self {
         let src = Filler::new(rdr);
         let buf = BytesMut::new();
-        Self { src, buf }
+        let offset = 0;
+        Self { src, buf, offset }
     }
 
     pub fn read_next<T>(&mut self, mut f: impl FnMut(Record) -> T) -> ReaderResult<Option<T>> {
@@ -86,6 +90,10 @@ impl<R: Read> Reader<R> {
                 }
             }
 
+            if self.buf[80] != b'\n' {
+                return Err(ReaderError::InvalidRecord(self.offset));
+            }
+
             let record = self.buf.split_to(CIF_LINE_LEN).freeze();
             let val = match &record[0..2] {
                 b"HD" => Record::Header(Header::from_record(record)),
@@ -101,6 +109,7 @@ impl<R: Read> Reader<R> {
                 b"ZZ" => Record::Trailer(Trailer::from_record(record)),
                 _ => Record::Unrecognised(record),
             };
+            self.offset += CIF_LINE_LEN;
 
             let res = f(val);
             return Ok(Some(res));
@@ -119,5 +128,92 @@ impl From<CIFParseError<'_>> for ReaderError {
             CIFParseError::InvalidNumber(err) => ReaderError::InvalidNumber(err),
             other => ReaderError::Other(other.to_string()),
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+
+    use super::*;
+
+    #[test]
+    fn should_fail_if_newline_too_soon() {
+        let it: &[u8] =
+            b"ZZ                                                                             \n ";
+        assert_ne!(it[80], b'\n');
+        assert_eq!(it[79], b'\n');
+
+        let mut r = Reader::new(it);
+
+        let res = r.read_next(std::convert::identity);
+        let e = res.unwrap_err();
+        assert!(
+            matches!(e, ReaderError::InvalidRecord(0)),
+            "{:?} should be invalid record at 0",
+            e
+        );
+    }
+    #[test]
+    fn should_fail_if_newline_too_late() {
+        let it: &[u8] =
+            b"ZZ                                                                               \n";
+        assert_ne!(it[80], b'\n');
+        assert_eq!(it[81], b'\n');
+
+        let mut r = Reader::new(it);
+
+        let res = r.read_next(std::convert::identity);
+        let e = res.unwrap_err();
+        assert!(
+            matches!(e, ReaderError::InvalidRecord(0)),
+            "{:?} should be invalid record at 0",
+            e
+        );
+    }
+    #[test]
+    fn invalid_record_indicates_file_offset() {
+        let it: &[u8] = b"\
+        ZZ                                                                              \n\
+        ZZ                                                                             \n ";
+        assert_eq!(it[80], b'\n');
+        assert_eq!(it[160], b'\n'); // One off
+        assert_ne!(it[161], b'\n');
+
+        let mut r = Reader::new(it);
+
+        let _ = r.read_next(std::convert::identity).unwrap();
+        let res = r.read_next(std::convert::identity);
+        let e = res.unwrap_err();
+        assert!(
+            matches!(e, ReaderError::InvalidRecord(81)),
+            "{:?} should be invalid record at 81",
+            e
+        );
+    }
+    #[test]
+    fn invalid_record_indicates_file_offset_2() {
+        let it: &[u8] = b"\
+        ZZ                                                                              \n\
+        ZZ                                                                              \n\
+        ZZ                                                                              \n\
+        ZZ                                                                             \n ";
+        assert_eq!(it[80], b'\n');
+        assert_eq!(it[161], b'\n');
+        assert_eq!(it[242], b'\n');
+        assert_eq!(it[322], b'\n'); // One off
+        assert_ne!(it[323], b'\n');
+
+        let mut r = Reader::new(it);
+
+        let _ = r.read_next(std::convert::identity).unwrap();
+        let _ = r.read_next(std::convert::identity).unwrap();
+        let _ = r.read_next(std::convert::identity).unwrap();
+        let res = r.read_next(std::convert::identity);
+        let e = res.unwrap_err();
+        assert!(
+            matches!(e, ReaderError::InvalidRecord(243)),
+            "{:?} should be invalid record at 243",
+            e
+        );
     }
 }
