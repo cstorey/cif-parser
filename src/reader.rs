@@ -16,8 +16,6 @@ const CIF_LINE_LEN: usize = 81;
 pub enum ReaderError {
     #[error("I/O:")]
     Io(#[from] std::io::Error),
-    #[error("Parsing CIF:")]
-    CIFParseError(CIFParseError<'static>),
     #[error("UTF-8:")]
     UTF8(std::str::Utf8Error),
     #[error("Parsing number:")]
