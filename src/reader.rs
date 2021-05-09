@@ -5,8 +5,8 @@ use log::*;
 use thiserror::Error;
 
 use crate::{
-    Association, BasicSchedule, CIFParseError, ChangeEnRoute, Header, LocationIntermediate,
-    LocationOrigin, LocationTerminating, Record, ScheduleExtra, TiplocAmend, TiplocInsert, Trailer,
+    Association, BasicSchedule, ChangeEnRoute, Header, LocationIntermediate, LocationOrigin,
+    LocationTerminating, Record, ScheduleExtra, TiplocAmend, TiplocInsert, Trailer,
 };
 
 // 80 characters plus a newline
@@ -16,14 +16,8 @@ const CIF_LINE_LEN: usize = 81;
 pub enum ReaderError {
     #[error("I/O:")]
     Io(#[from] std::io::Error),
-    #[error("UTF-8:")]
-    UTF8(std::str::Utf8Error),
-    #[error("Parsing number:")]
-    InvalidNumber(lexical_core::Error),
     #[error("Invalid record at byte: {}", 0)]
     InvalidRecord(usize),
-    #[error("Error:")]
-    Other(String),
 }
 
 pub type ReaderResult<T> = std::result::Result<T, ReaderError>;
@@ -116,16 +110,6 @@ impl<R: Read> Reader<R> {
 
     pub fn get_ref(&self) -> &R {
         &self.src.inner
-    }
-}
-
-impl From<CIFParseError<'_>> for ReaderError {
-    fn from(src: CIFParseError<'_>) -> Self {
-        match src {
-            CIFParseError::Utf8(err) => ReaderError::UTF8(err),
-            CIFParseError::InvalidNumber(err) => ReaderError::InvalidNumber(err),
-            other => ReaderError::Other(other.to_string()),
-        }
     }
 }
 
