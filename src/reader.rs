@@ -34,7 +34,7 @@ pub struct Reader<R> {
 }
 
 impl<R: Read> Filler<R> {
-    const BUF_FILL_SIZE: usize = 4096;
+    const BUF_FILL_SIZE: usize = 64 * 1024;
 
     fn new(inner: R) -> Self {
         Filler { inner }
