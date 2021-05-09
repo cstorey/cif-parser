@@ -86,81 +86,24 @@ impl<R: Read> Reader<R> {
                 }
             }
 
-            match &self.buf[0..2] {
-                b"HD" => {
-                    let record = self.buf.split_to(CIF_LINE_LEN).freeze();
-                    let val = Record::Header(Header::from_record(record));
-                    let res = f(val);
-                    return Ok(Some(res));
-                }
-                b"TI" => {
-                    let record = self.buf.split_to(CIF_LINE_LEN).freeze();
-                    let val = Record::TiplocInsert(TiplocInsert::from_record(record));
-                    let res = f(val);
-                    return Ok(Some(res));
-                }
-                b"TA" => {
-                    let record = self.buf.split_to(CIF_LINE_LEN).freeze();
-                    let val = Record::TiplocAmend(TiplocAmend::from_record(record));
-                    let res = f(val);
-                    return Ok(Some(res));
-                }
-                b"AA" => {
-                    let record = self.buf.split_to(CIF_LINE_LEN).freeze();
-                    let val = Record::Association(Association::from_record(record));
-                    let res = f(val);
-                    return Ok(Some(res));
-                }
-                b"BS" => {
-                    let record = self.buf.split_to(CIF_LINE_LEN).freeze();
-                    let val = Record::Schedule(BasicSchedule::from_record(record));
-                    let res = f(val);
-                    return Ok(Some(res));
-                }
-                b"BX" => {
-                    let record = self.buf.split_to(CIF_LINE_LEN).freeze();
-                    let val = Record::ScheduleExtra(ScheduleExtra::from_record(record));
-                    let res = f(val);
-                    return Ok(Some(res));
-                }
-                b"LO" => {
-                    let record = self.buf.split_to(CIF_LINE_LEN).freeze();
-                    let val = Record::LocationOrigin(LocationOrigin::from_record(record));
-                    let res = f(val);
-                    return Ok(Some(res));
-                }
-                b"LI" => {
-                    let record = self.buf.split_to(CIF_LINE_LEN).freeze();
-                    let val =
-                        Record::LocationIntermediate(LocationIntermediate::from_record(record));
-                    let res = f(val);
-                    return Ok(Some(res));
-                }
-                b"LT" => {
-                    let record = self.buf.split_to(CIF_LINE_LEN).freeze();
-                    let val = Record::LocationTerminating(LocationTerminating::from_record(record));
-                    let res = f(val);
-                    return Ok(Some(res));
-                }
-                b"CR" => {
-                    let record = self.buf.split_to(CIF_LINE_LEN).freeze();
-                    let val = Record::ChangeEnRoute(ChangeEnRoute::from_record(record));
-                    let res = f(val);
-                    return Ok(Some(res));
-                }
-                b"ZZ" => {
-                    let record = self.buf.split_to(CIF_LINE_LEN).freeze();
-                    let val = Record::Trailer(Trailer::from_record(record));
-                    let res = f(val);
-                    return Ok(Some(res));
-                }
-                _ => {
-                    let record = self.buf.split_to(CIF_LINE_LEN).freeze();
-                    let val = Record::Unrecognised(record);
-                    let res = f(val);
-                    return Ok(Some(res));
-                }
-            }
+            let record = self.buf.split_to(CIF_LINE_LEN).freeze();
+            let val = match &record[0..2] {
+                b"HD" => Record::Header(Header::from_record(record)),
+                b"TI" => Record::TiplocInsert(TiplocInsert::from_record(record)),
+                b"TA" => Record::TiplocAmend(TiplocAmend::from_record(record)),
+                b"AA" => Record::Association(Association::from_record(record)),
+                b"BS" => Record::Schedule(BasicSchedule::from_record(record)),
+                b"BX" => Record::ScheduleExtra(ScheduleExtra::from_record(record)),
+                b"LO" => Record::LocationOrigin(LocationOrigin::from_record(record)),
+                b"LI" => Record::LocationIntermediate(LocationIntermediate::from_record(record)),
+                b"LT" => Record::LocationTerminating(LocationTerminating::from_record(record)),
+                b"CR" => Record::ChangeEnRoute(ChangeEnRoute::from_record(record)),
+                b"ZZ" => Record::Trailer(Trailer::from_record(record)),
+                _ => Record::Unrecognised(record),
+            };
+
+            let res = f(val);
+            return Ok(Some(res));
         }
     }
 
