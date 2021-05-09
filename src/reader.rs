@@ -75,7 +75,7 @@ impl<R: Read> Reader<R> {
             }
 
             if self.buf.len() < CIF_LINE_LEN {
-                debug!("Need more");
+                trace!("Need more");
                 if !self.src.refill_until_eof(&mut self.buf)? {
                     return Ok(None);
                 } else {
