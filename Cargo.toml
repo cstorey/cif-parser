@@ -11,7 +11,7 @@ benches = []
 log = "0.4.7"
 
 chrono = "0.4.7"
-lexical-core = "0.7.4"
+lexical-core = "0.8.0"
 chrono-tz = "0.5.1"
 bitflags = "1.1.0"
 bytes = "1.0.0"
