@@ -6,6 +6,7 @@ use chrono::NaiveTime;
 use crate::errors::CIFParseError;
 
 bitflags! {
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
     pub struct Days: u8 {
         const MON = 0b00000001;
         const TUE = 0b0000010;
