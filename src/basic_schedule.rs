@@ -133,11 +133,11 @@ mod test {
         assert_eq!(example.uid().unwrap(), "G82885");
         assert_eq!(
             example.start_date().unwrap(),
-            NaiveDate::from_ymd(2015, 10, 19)
+            NaiveDate::from_ymd_opt(2015, 10, 19).unwrap()
         );
         assert_eq!(
             example.end_date().unwrap(),
-            NaiveDate::from_ymd(2015, 10, 23).into()
+            NaiveDate::from_ymd_opt(2015, 10, 23).unwrap().into()
         );
         assert_eq!(example.days().unwrap(), Days::MON | Days::TUE | Days::FRI);
         assert_eq!(example.bank_holiday().unwrap(), None);
@@ -166,11 +166,11 @@ mod test {
         assert_eq!(example.uid().unwrap(), "C67006");
         assert_eq!(
             example.start_date().unwrap(),
-            NaiveDate::from_ymd(2019, 5, 19)
+            NaiveDate::from_ymd_opt(2019, 5, 19).unwrap()
         );
         assert_eq!(
             example.end_date().unwrap(),
-            Some(NaiveDate::from_ymd(2019, 7, 28))
+            Some(NaiveDate::from_ymd_opt(2019, 7, 28).unwrap())
         );
         assert_eq!(example.days().unwrap(), Days::SUN);
         assert_eq!(example.bank_holiday().unwrap(), None);
@@ -198,11 +198,11 @@ mod test {
         assert_eq!(example.uid().unwrap(), "L63173");
         assert_eq!(
             example.start_date().unwrap(),
-            NaiveDate::from_ymd(2019, 5, 19)
+            NaiveDate::from_ymd_opt(2019, 5, 19).unwrap()
         );
         assert_eq!(
             example.end_date().unwrap(),
-            NaiveDate::from_ymd(2019, 9, 29).into()
+            NaiveDate::from_ymd_opt(2019, 9, 29).unwrap().into()
         );
         assert_eq!(example.days().unwrap(), Days::SUN);
         assert_eq!(example.bank_holiday().unwrap(), None);
@@ -229,11 +229,11 @@ mod test {
         assert_eq!(example.uid().unwrap(), "H19351");
         assert_eq!(
             example.start_date().unwrap(),
-            NaiveDate::from_ymd(2019, 5, 20)
+            NaiveDate::from_ymd_opt(2019, 5, 20).unwrap()
         );
         assert_eq!(
             example.end_date().unwrap(),
-            NaiveDate::from_ymd(2019, 11, 1).into()
+            NaiveDate::from_ymd_opt(2019, 11, 1).unwrap().into()
         );
         assert_eq!(
             example.days().unwrap(),
@@ -264,11 +264,11 @@ mod test {
         assert_eq!(example.uid().unwrap(), "C02189");
         assert_eq!(
             example.start_date().unwrap(),
-            NaiveDate::from_ymd(2019, 5, 19)
+            NaiveDate::from_ymd_opt(2019, 5, 19).unwrap()
         );
         assert_eq!(
             example.end_date().unwrap(),
-            NaiveDate::from_ymd(2019, 12, 8).into()
+            NaiveDate::from_ymd_opt(2019, 12, 8).unwrap().into()
         );
         assert_eq!(example.days().unwrap(), Days::SUN);
         assert_eq!(example.bank_holiday().unwrap(), None);
@@ -296,7 +296,7 @@ mod test {
         assert_eq!(example.uid().unwrap(), "S48587");
         assert_eq!(
             example.start_date().unwrap(),
-            NaiveDate::from_ymd(2019, 5, 25)
+            NaiveDate::from_ymd_opt(2019, 5, 25).unwrap()
         );
         assert_eq!(example.end_date().unwrap(), None);
         assert_eq!(example.days().unwrap(), Days::empty());

@@ -1,8 +1,4 @@
-use std::{
-    fs::File,
-    io::{Seek, SeekFrom},
-    path::PathBuf,
-};
+use std::{fs::File, io::Seek, path::PathBuf};
 
 use anyhow::Result;
 use fallible_iterator::FallibleIterator;
@@ -30,7 +26,7 @@ fn main() -> Result<()> {
 
         while let Some(r) = rdr.next()? {
             println!("{:?}", r);
-            let off = rdr.get_ref().seek(SeekFrom::Current(0))?;
+            let off = rdr.get_ref().stream_position()?;
             debug!(
                 "{}/{}; {:.2}%",
                 off,
