@@ -1,33 +1,33 @@
-#![cfg(feature = "benches")]
-#![feature(test)]
-
-extern crate test;
-
-use std::convert::TryInto;
+use criterion::{
+    black_box, criterion_group, criterion_main, measurement::WallTime, BenchmarkGroup, Criterion,
+    Throughput,
+};
+use std::{convert::TryInto, fs};
 
 static SAMPLE: &[u8] = include_bytes!("../tests/sample.cif");
 static SAMPLE_LARGER: &[u8] = include_bytes!("../tests/sample-larger.cif");
 
-#[bench]
-fn read_sample(b: &mut test::Bencher) {
-    bench_reader(b, SAMPLE)
+fn read_sample(b: &mut Criterion) {
+    bench_reader(b.benchmark_group("smaller"), SAMPLE)
 }
 
-#[bench]
-fn read_larger(b: &mut test::Bencher) {
-    bench_reader(b, SAMPLE_LARGER)
+fn read_larger(b: &mut Criterion) {
+    bench_reader(b.benchmark_group("larger"), SAMPLE_LARGER)
 }
 
-fn bench_reader(b: &mut test::Bencher, data: &[u8]) {
-    b.bytes = data.len().try_into().expect("data len to byte count");
-
-    b.iter(|| {
-        let mut rdr = cif_parser::Reader::new(data);
-        while let Some(_) = rdr
-            .read_next(|r| {
-                test::black_box(r);
-            })
-            .expect("read")
-        {}
+fn bench_reader(mut group: BenchmarkGroup<WallTime>, data: &[u8]) {
+    group.throughput(Throughput::Bytes(
+        data.len().try_into().expect("data len to byte count"),
+    ));
+    group.bench_function("read", |b| {
+        b.iter(|| {
+            let mut rdr = cif_parser::Reader::new(data);
+            while let Some(data) = rdr.read_next().expect("read") {
+                black_box(data);
+            }
+        })
     });
 }
+
+criterion_group!(benches, read_sample, read_larger);
+criterion_main!(benches);
