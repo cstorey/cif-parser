@@ -3,7 +3,7 @@ use std::fmt;
 use bytes::Bytes;
 use chrono::{NaiveDate, NaiveDateTime};
 
-use crate::helpers::string_of_slice_opt;
+use crate::helpers::{string_of_slice_opt, time_from_slice};
 use crate::{errors::CIFParseError, helpers::ddmmyy_from_slice};
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -30,18 +30,9 @@ impl Header {
     }
 
     pub fn extracted_at(&self) -> Result<NaiveDateTime, CIFParseError> {
-        let dd = lexical_core::parse(&self.record[22..24])?;
-        let mm = lexical_core::parse(&self.record[24..26])?;
-        let yy: i32 = lexical_core::parse(&self.record[26..28])?;
-        let h = lexical_core::parse(&self.record[28..30])?;
-        let m = lexical_core::parse(&self.record[30..32])?;
-        if let Some(dt) = NaiveDate::from_ymd_opt(yy + 2000, mm, dd) {
-            Ok(dt.and_hms(h, m, 0))
-        } else {
-            Err(CIFParseError::InvalidTime(Bytes::copy_from_slice(
-                &self.record[22..32],
-            )))
-        }
+        let date = ddmmyy_from_slice(&self.record[22..28])?;
+        let time = time_from_slice(&self.record[28..32])?;
+        Ok(date.and_time(time))
     }
 
     pub fn current_file(&self) -> Result<&str, CIFParseError> {
@@ -104,7 +95,10 @@ mod test {
         let header = example();
         assert_eq!(
             header.extracted_at().unwrap(),
-            NaiveDate::from_ymd(2020, 6, 28).and_hms(19, 34, 0),
+            NaiveDate::from_ymd_opt(2020, 6, 28)
+                .unwrap()
+                .and_hms_opt(19, 34, 0)
+                .unwrap(),
         );
     }
     #[test]
@@ -133,7 +127,7 @@ mod test {
         let header = example();
         assert_eq!(
             header.user_start_date().unwrap(),
-            NaiveDate::from_ymd(2020, 6, 28)
+            NaiveDate::from_ymd_opt(2020, 6, 28).unwrap()
         );
     }
     #[test]
@@ -141,7 +135,7 @@ mod test {
         let header = example();
         assert_eq!(
             header.user_end_date().unwrap(),
-            NaiveDate::from_ymd(2021, 6, 28)
+            NaiveDate::from_ymd_opt(2021, 6, 28).unwrap()
         );
     }
 

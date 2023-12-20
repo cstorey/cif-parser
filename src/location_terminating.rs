@@ -68,11 +68,11 @@ mod test {
         assert_eq!(example.tiploc().unwrap(), Tiploc::from("TUNWELL"));
         assert_eq!(
             example.scheduled_arrival_time().unwrap(),
-            NaiveTime::from_hms(1, 25, 0)
+            NaiveTime::from_hms_opt(1, 25, 0).unwrap()
         );
         assert_eq!(
             example.public_arrival().unwrap(),
-            NaiveTime::from_hms(1, 27, 0)
+            NaiveTime::from_hms_opt(1, 27, 0).unwrap()
         );
         assert_eq!(example.platform().unwrap(), Some("1"));
         assert_eq!(example.path().unwrap(), None);

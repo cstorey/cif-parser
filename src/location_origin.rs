@@ -85,11 +85,11 @@ mod test {
         assert_eq!(example.tiploc_suffix().unwrap(), None);
         assert_eq!(
             example.scheduled_departure_time().unwrap(),
-            NaiveTime::from_hms(0, 15, 0)
+            NaiveTime::from_hms_opt(0, 15, 0).unwrap()
         );
         assert_eq!(
             example.public_departure().unwrap(),
-            NaiveTime::from_hms(0, 15, 0)
+            NaiveTime::from_hms_opt(0, 15, 0).unwrap()
         );
         assert_eq!(example.platform().unwrap(), Some("6"));
         assert_eq!(example.line().unwrap(), Some("FL"));

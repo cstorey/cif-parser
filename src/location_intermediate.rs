@@ -98,20 +98,20 @@ mod test {
         assert_eq!(example.tiploc().unwrap(), "WLOE".into());
         assert_eq!(
             example.scheduled_arrival_time().unwrap(),
-            NaiveTime::from_hms(23, 27, 0).into()
+            NaiveTime::from_hms_opt(23, 27, 0).unwrap().into()
         );
         assert_eq!(
             example.scheduled_departure_time().unwrap(),
-            NaiveTime::from_hms(23, 28, 0).into()
+            NaiveTime::from_hms_opt(23, 28, 0).unwrap().into()
         );
         assert_eq!(example.scheduled_pass().unwrap(), None);
         assert_eq!(
             example.public_arrival().unwrap(),
-            NaiveTime::from_hms(23, 27, 0).into()
+            NaiveTime::from_hms_opt(23, 27, 0).unwrap().into()
         );
         assert_eq!(
             example.public_departure().unwrap(),
-            NaiveTime::from_hms(23, 28, 0).into()
+            NaiveTime::from_hms_opt(23, 28, 0).unwrap().into()
         );
         assert_eq!(example.platform().unwrap(), Some("C"));
         assert_eq!(example.line().unwrap(), None);
@@ -132,15 +132,15 @@ mod test {
         assert_eq!(example.scheduled_departure_time().unwrap(), None);
         assert_eq!(
             example.scheduled_pass().unwrap(),
-            Some(NaiveTime::from_hms(12, 11, 30))
+            Some(NaiveTime::from_hms_opt(12, 11, 30).unwrap())
         );
         assert_eq!(
             example.public_arrival().unwrap(),
-            Some(NaiveTime::from_hms(0, 0, 0))
+            Some(NaiveTime::from_hms_opt(0, 0, 0).unwrap())
         );
         assert_eq!(
             example.public_departure().unwrap(),
-            Some(NaiveTime::from_hms(0, 0, 0))
+            Some(NaiveTime::from_hms_opt(0, 0, 0).unwrap())
         );
         assert_eq!(example.platform().unwrap(), None);
         assert_eq!(example.line().unwrap(), None);
