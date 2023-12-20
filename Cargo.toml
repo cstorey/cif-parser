@@ -10,7 +10,7 @@ benches = []
 [dependencies]
 chrono = "0.4.7"
 lexical-core = "0.8.0"
-bitflags = "1.1.0"
+bitflags = "2.4.1"
 bytes = "1.0.0"
 thiserror = "1.0.20"
 fallible-iterator = "0.3.0"
