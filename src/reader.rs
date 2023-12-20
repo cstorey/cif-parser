@@ -2,8 +2,8 @@ use std::io::Read;
 
 use bytes::BytesMut;
 use fallible_iterator::FallibleIterator;
-use log::*;
 use thiserror::Error;
+use tracing::{trace, Level};
 
 use crate::{
     Association, BasicSchedule, ChangeEnRoute, Header, LocationIntermediate, LocationOrigin,
@@ -61,7 +61,7 @@ impl<R: Read> Reader<R> {
     pub fn read_next(&mut self) -> ReaderResult<Option<Record>> {
         const SNIPPET: usize = 128;
         loop {
-            if log::log_enabled!(log::Level::Trace) {
+            if tracing::enabled!(Level::TRACE) {
                 trace!("Top of loop: buf.len(): {:?}", self.buf.len());
 
                 if self.buf.len() > SNIPPET {
