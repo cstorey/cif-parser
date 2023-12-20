@@ -2,10 +2,10 @@ use std::{fs::File, io::Seek, path::PathBuf};
 
 use anyhow::Result;
 use fallible_iterator::FallibleIterator;
-use log::*;
 use structopt::StructOpt;
 
 use cif_parser::Reader;
+use tracing::{debug, info};
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "cif-parser", about = "CIF file parser")]
@@ -14,7 +14,8 @@ struct Opts {
 }
 
 fn main() -> Result<()> {
-    env_logger::init();
+    tracing_subscriber::fmt::init();
+
     let opts = Opts::from_args();
 
     for f in opts.files {

@@ -24,7 +24,7 @@ enum Kind {
 
 #[test]
 fn should_read_file() {
-    env_logger::try_init().unwrap_or_default();
+    tracing_subscriber::fmt::try_init().unwrap_or_default();
 
     let mut nitems = BTreeMap::<Kind, usize>::new();
 
