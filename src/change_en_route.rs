@@ -1,22 +1,21 @@
 use std::fmt;
 
-use bytes::Bytes;
-
 use crate::{
     helpers::{string_of_slice, string_of_slice_opt},
+    reader::CifLine,
     CIFParseError, Tiploc,
 };
 
 #[derive(Clone, Eq, PartialEq)]
 pub struct ChangeEnRoute {
-    record: Bytes,
+    record: CifLine,
 }
 
 impl ChangeEnRoute {
-    pub(crate) fn from_record(record: Bytes) -> Self {
+    pub(crate) fn from_record(record: CifLine) -> Self {
         Self { record }
     }
-    pub fn buf(&self) -> &Bytes {
+    pub fn buf(&self) -> &CifLine {
         &self.record
     }
 
@@ -114,7 +113,7 @@ mod test {
     fn should_parse_change_en_route() {
         let i = b"CRCTRDJN  DT3Q27    152495112 D      030                                        ";
         assert_eq!(80, i.len());
-        let example = ChangeEnRoute::from_record(Bytes::from(i.as_ref()));
+        let example = ChangeEnRoute::from_record(*i);
         println!("{:?}", example);
 
         assert_eq!(example.tiploc().unwrap(), Tiploc::from("CTRDJN"));

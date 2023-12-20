@@ -1,6 +1,6 @@
-use std::io::Read;
+use std::{convert::TryInto, io::Read};
 
-use bytes::BytesMut;
+use bytes::{Buf, BytesMut};
 use fallible_iterator::FallibleIterator;
 use thiserror::Error;
 use tracing::{trace, Level};
@@ -10,8 +10,11 @@ use crate::{
     LocationTerminating, Record, ScheduleExtra, TiplocAmend, TiplocInsert, Trailer,
 };
 
+pub(crate) const CIF_RECORD_LEN: usize = 80;
 // 80 characters plus a newline
 const CIF_LINE_LEN: usize = 81;
+
+pub(crate) type CifLine = [u8; CIF_RECORD_LEN];
 
 #[derive(Error, Debug)]
 pub enum ReaderError {
@@ -87,7 +90,14 @@ impl<R: Read> Reader<R> {
                 return Err(ReaderError::InvalidRecord(self.offset));
             }
 
-            let record = self.buf.split_to(CIF_LINE_LEN).freeze();
+            let tmp = &self.buf[0..CIF_RECORD_LEN];
+            assert!(
+                tmp.len() == CIF_RECORD_LEN,
+                "tmp:{} == CIF_RECORD_LEN:{}",
+                tmp.len(),
+                CIF_LINE_LEN,
+            );
+            let record: CifLine = tmp.try_into().expect("should be infallible");
             let val = match &record[0..2] {
                 b"HD" => Record::Header(Header::from_record(record)),
                 b"TI" => Record::TiplocInsert(TiplocInsert::from_record(record)),
@@ -103,6 +113,7 @@ impl<R: Read> Reader<R> {
                 _ => Record::Unrecognised(record),
             };
             self.offset += CIF_LINE_LEN;
+            self.buf.advance(CIF_LINE_LEN);
 
             return Ok(Some(val));
         }

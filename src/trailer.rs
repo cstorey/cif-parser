@@ -1,17 +1,17 @@
 use std::fmt;
 
-use bytes::Bytes;
+use crate::reader::CifLine;
 
 #[derive(Clone, Eq, PartialEq)]
 pub struct Trailer {
-    record: Bytes,
+    record: CifLine,
 }
 
 impl Trailer {
-    pub(crate) fn from_record(record: Bytes) -> Self {
+    pub(crate) fn from_record(record: CifLine) -> Self {
         Self { record }
     }
-    pub fn buf(&self) -> &Bytes {
+    pub fn buf(&self) -> &CifLine {
         &self.record
     }
 }
@@ -32,7 +32,6 @@ mod test {
         let assoc =
             b"ZZ                                                                              ";
         assert_eq!(80, assoc.len());
-        let example = Trailer::from_record(Bytes::from(assoc.as_ref()));
-        drop(example);
+        let _example = Trailer::from_record(*assoc);
     }
 }

@@ -1,22 +1,21 @@
 use std::fmt;
 
-use bytes::Bytes;
-
 use crate::{
     errors::CIFParseError,
     helpers::{string_of_slice, string_of_slice_opt},
+    reader::CifLine,
 };
 
 #[derive(Clone, Eq, PartialEq)]
 pub struct ScheduleExtra {
-    record: Bytes,
+    record: CifLine,
 }
 
 impl ScheduleExtra {
-    pub(crate) fn from_record(record: Bytes) -> Self {
+    pub(crate) fn from_record(record: CifLine) -> Self {
         Self { record }
     }
-    pub fn buf(&self) -> &Bytes {
+    pub fn buf(&self) -> &CifLine {
         &self.record
     }
 
@@ -53,7 +52,7 @@ mod test {
         let extra =
             b"BX         SEY                                                                  ";
         assert_eq!(80, extra.len());
-        let example = ScheduleExtra::from_record(Bytes::from(extra.as_ref()));
+        let example = ScheduleExtra::from_record(*extra);
         assert_eq!(example.uic_code().unwrap(), None);
         assert_eq!(example.atoc_code().unwrap(), "SE");
         assert_eq!(example.applicable_timetable_code().unwrap(), "Y");
@@ -63,7 +62,7 @@ mod test {
         let extra =
             b"BX    47410ZZY                                                                  ";
         assert_eq!(80, extra.len());
-        let example = ScheduleExtra::from_record(Bytes::from(extra.as_ref()));
+        let example = ScheduleExtra::from_record(*extra);
         assert_eq!(example.uic_code().unwrap(), Some("47410"));
         assert_eq!(example.atoc_code().unwrap(), "ZZ");
         assert_eq!(example.applicable_timetable_code().unwrap(), "Y");

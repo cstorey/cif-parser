@@ -1,22 +1,22 @@
 use std::fmt;
 
-use bytes::Bytes;
 use helpers::string_of_slice_opt;
 
 use crate::helpers::*;
+use crate::reader::CifLine;
 use crate::tiploc::Tiploc;
 use crate::{errors::CIFParseError, helpers};
 
 #[derive(Clone, Eq, PartialEq)]
 pub struct TiplocInsert {
-    record: Bytes,
+    record: CifLine,
 }
 
 impl TiplocInsert {
-    pub(crate) fn from_record(record: Bytes) -> Self {
+    pub(crate) fn from_record(record: CifLine) -> Self {
         Self { record }
     }
-    pub fn buf(&self) -> &Bytes {
+    pub fn buf(&self) -> &CifLine {
         &self.record
     }
 
@@ -70,7 +70,7 @@ mod test {
         let insert =
             b"TIBLTNODR24853600DBOLTON-UPON-DEARNE        24011   0BTDBOLTON ON DEARNE        ";
         assert_eq!(80, insert.len());
-        let example = TiplocInsert::from_record(Bytes::from(insert.as_ref()));
+        let example = TiplocInsert::from_record(*insert);
         assert_eq!(example.tiploc().unwrap(), Tiploc::of_str("BLTNODR"));
         assert_eq!(example.nlc().unwrap(), "853600");
         assert_eq!(example.nlc_check().unwrap(), "D");
@@ -85,7 +85,7 @@ mod test {
         let insert =
             b"TIAACHEN 00081601LAACHEN                    00005   0                           ";
         assert_eq!(80, insert.len());
-        let example = TiplocInsert::from_record(Bytes::from(insert.as_ref()));
+        let example = TiplocInsert::from_record(*insert);
         assert_eq!(example.tiploc().unwrap(), Tiploc::of_str("AACHEN"));
         assert_eq!(example.nlc().unwrap(), "081601");
         assert_eq!(example.nlc_check().unwrap(), "L");

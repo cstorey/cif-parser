@@ -1,23 +1,23 @@
 use std::fmt;
 
-use bytes::Bytes;
 use chrono::NaiveDate;
 
 use crate::helpers::{days_from_slice, string_of_slice_opt, yymmdd_from_slice, Days};
+use crate::reader::CifLine;
 use crate::{errors::CIFParseError, helpers::string_of_slice};
 
 use super::{Stp, TransactionType};
 
 #[derive(Clone, Eq, PartialEq)]
 pub struct BasicSchedule {
-    record: Bytes,
+    record: CifLine,
 }
 
 impl BasicSchedule {
-    pub(crate) fn from_record(record: Bytes) -> Self {
+    pub(crate) fn from_record(record: CifLine) -> Self {
         Self { record }
     }
-    pub fn buf(&self) -> &Bytes {
+    pub fn buf(&self) -> &CifLine {
         &self.record
     }
 
@@ -128,7 +128,7 @@ mod test {
         let sched =
             b"BSRG828851510191510231100100 POO2N75    113575825 DMUE   090      S            O";
         assert_eq!(80, sched.len());
-        let example = BasicSchedule::from_record(Bytes::from(sched.as_ref()));
+        let example = BasicSchedule::from_record(*sched);
         assert_eq!(example.transaction_type().unwrap(), TransactionType::Revise);
         assert_eq!(example.uid().unwrap(), "G82885");
         assert_eq!(
@@ -161,7 +161,7 @@ mod test {
             b"BSNC670061905191907280000001            1                                      C";
 
         assert_eq!(80, sched.len());
-        let example = BasicSchedule::from_record(Bytes::from(sched.as_ref()));
+        let example = BasicSchedule::from_record(*sched);
         assert_eq!(example.transaction_type().unwrap(), TransactionType::New);
         assert_eq!(example.uid().unwrap(), "C67006");
         assert_eq!(
@@ -193,7 +193,7 @@ mod test {
         let sched =
             b"BSRL631731905191909290000001 POO2Y16    122214000 EMU375 075D                  P";
         assert_eq!(80, sched.len());
-        let example = BasicSchedule::from_record(Bytes::from(sched.as_ref()));
+        let example = BasicSchedule::from_record(*sched);
         assert_eq!(example.transaction_type().unwrap(), TransactionType::Revise);
         assert_eq!(example.uid().unwrap(), "L63173");
         assert_eq!(
@@ -224,7 +224,7 @@ mod test {
         let sched =
             b"BSRH193511905201911011111100 F          1         D  600 060                   P";
         assert_eq!(80, sched.len());
-        let example = BasicSchedule::from_record(Bytes::from(sched.as_ref()));
+        let example = BasicSchedule::from_record(*sched);
         assert_eq!(example.transaction_type().unwrap(), TransactionType::Revise);
         assert_eq!(example.uid().unwrap(), "H19351");
         assert_eq!(
@@ -259,7 +259,7 @@ mod test {
         let sched =
             b"BSNC021891905191912080000001 BBS0B00    122180008                              P";
         assert_eq!(80, sched.len());
-        let example = BasicSchedule::from_record(Bytes::from(sched.as_ref()));
+        let example = BasicSchedule::from_record(*sched);
         assert_eq!(example.transaction_type().unwrap(), TransactionType::New);
         assert_eq!(example.uid().unwrap(), "C02189");
         assert_eq!(
@@ -291,7 +291,7 @@ mod test {
         let sched =
             b"BSDS48587190525                                                                N";
         assert_eq!(80, sched.len());
-        let example = BasicSchedule::from_record(Bytes::from(sched.as_ref()));
+        let example = BasicSchedule::from_record(*sched);
         assert_eq!(example.transaction_type().unwrap(), TransactionType::Delete);
         assert_eq!(example.uid().unwrap(), "S48587");
         assert_eq!(

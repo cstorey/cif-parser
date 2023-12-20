@@ -1,22 +1,22 @@
 use std::fmt;
 
-use bytes::Bytes;
 use chrono::NaiveTime;
 
 use crate::errors::*;
 use crate::helpers::*;
+use crate::reader::CifLine;
 use crate::tiploc::*;
 
 #[derive(Clone, Eq, PartialEq)]
 pub struct LocationTerminating {
-    record: Bytes,
+    record: CifLine,
 }
 
 impl LocationTerminating {
-    pub(crate) fn from_record(record: Bytes) -> Self {
+    pub(crate) fn from_record(record: CifLine) -> Self {
         Self { record }
     }
-    pub fn buf(&self) -> &Bytes {
+    pub fn buf(&self) -> &CifLine {
         &self.record
     }
 
@@ -63,7 +63,7 @@ mod test {
     fn should_parse_location_terminating() {
         let i = b"LTTUNWELL 0125 01271     TF                                                     ";
         assert_eq!(80, i.len());
-        let example = LocationTerminating::from_record(Bytes::from(i.as_ref()));
+        let example = LocationTerminating::from_record(*i);
         println!("{:?}", example);
         assert_eq!(example.tiploc().unwrap(), Tiploc::from("TUNWELL"));
         assert_eq!(

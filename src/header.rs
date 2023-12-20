@@ -1,10 +1,13 @@
 use std::fmt;
 
-use bytes::Bytes;
 use chrono::{NaiveDate, NaiveDateTime};
 
-use crate::helpers::{string_of_slice_opt, time_from_slice};
-use crate::{errors::CIFParseError, helpers::ddmmyy_from_slice};
+use crate::{
+    errors::CIFParseError,
+    helpers::ddmmyy_from_slice,
+    helpers::{string_of_slice_opt, time_from_slice},
+    reader::CifLine,
+};
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum FullOrUpdate {
@@ -14,14 +17,14 @@ pub enum FullOrUpdate {
 
 #[derive(Clone, Eq, PartialEq)]
 pub struct Header {
-    record: Bytes,
+    record: CifLine,
 }
 
 impl Header {
-    pub(crate) fn from_record(record: Bytes) -> Self {
+    pub(crate) fn from_record(record: CifLine) -> Self {
         Header { record }
     }
-    pub fn buf(&self) -> &Bytes {
+    pub fn buf(&self) -> &CifLine {
         &self.record
     }
 
@@ -141,10 +144,8 @@ mod test {
 
     fn example() -> Header {
         // From sample-larger.cif
-        let record = Bytes::from(
-            b"HDTPS.UDFROC1.PD2006282806201934DFROC1IDFROC1HUA280620280621                    "
-                as &[u8],
-        );
-        Header::from_record(record)
+        let record =
+            b"HDTPS.UDFROC1.PD2006282806201934DFROC1IDFROC1HUA280620280621                    ";
+        Header::from_record(*record)
     }
 }

@@ -1,22 +1,22 @@
 use std::fmt;
 
-use bytes::Bytes;
 use chrono::NaiveTime;
 
 use crate::errors::CIFParseError;
 use crate::helpers::*;
+use crate::reader::CifLine;
 use crate::tiploc::*;
 
 #[derive(Clone, Eq, PartialEq)]
 pub struct LocationIntermediate {
-    record: Bytes,
+    record: CifLine,
 }
 
 impl LocationIntermediate {
-    pub(crate) fn from_record(record: Bytes) -> Self {
+    pub(crate) fn from_record(record: CifLine) -> Self {
         Self { record }
     }
-    pub fn buf(&self) -> &Bytes {
+    pub fn buf(&self) -> &CifLine {
         &self.record
     }
 
@@ -93,7 +93,7 @@ mod test {
     fn should_parse_location_intermediate() {
         let i = b"LIWLOE    2327 2328      23272328C        T                                     ";
         assert_eq!(80, i.len());
-        let example = LocationIntermediate::from_record(Bytes::from(i.as_ref()));
+        let example = LocationIntermediate::from_record(*i);
         println!("{:?}", example);
         assert_eq!(example.tiploc().unwrap(), "WLOE".into());
         assert_eq!(
@@ -125,7 +125,7 @@ mod test {
     fn should_parse_location_intermediate_2() {
         let i = b"LIKETRSJ            1211H00000000                                               ";
         assert_eq!(80, i.len());
-        let example = LocationIntermediate::from_record(Bytes::from(i.as_ref()));
+        let example = LocationIntermediate::from_record(*i);
         println!("{:?}", example);
         assert_eq!(example.tiploc().unwrap(), "KETRSJ".into());
         assert_eq!(example.scheduled_arrival_time().unwrap(), None);

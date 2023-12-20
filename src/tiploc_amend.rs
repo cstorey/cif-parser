@@ -1,23 +1,22 @@
 use std::fmt;
 
-use bytes::Bytes;
-
 use crate::{
     errors::CIFParseError,
     helpers::{string_of_slice, string_of_slice_opt},
+    reader::CifLine,
     Tiploc,
 };
 
 #[derive(Clone, Eq, PartialEq)]
 pub struct TiplocAmend {
-    record: Bytes,
+    record: CifLine,
 }
 
 impl TiplocAmend {
-    pub(crate) fn from_record(record: Bytes) -> Self {
+    pub(crate) fn from_record(record: CifLine) -> Self {
         Self { record }
     }
-    pub fn buf(&self) -> &Bytes {
+    pub fn buf(&self) -> &CifLine {
         &self.record
     }
 
@@ -79,7 +78,7 @@ mod test {
         let amend =
             b"TAMBRK94200590970AMILLBROOK SIG E942        86536   0                           ";
         assert_eq!(80, amend.len());
-        let example = TiplocAmend::from_record(Bytes::from(amend.as_ref()));
+        let example = TiplocAmend::from_record(*amend);
 
         assert_eq!(example.tiploc().expect("tiploc"), Tiploc::of_str("MBRK942"));
         assert_eq!(example.nlc().expect("nlc"), "590970");

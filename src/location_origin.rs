@@ -1,24 +1,24 @@
 use std::fmt;
 
-use bytes::Bytes;
 use chrono::NaiveTime;
 
 use crate::{
     errors::CIFParseError,
     helpers::{string_of_slice, string_of_slice_opt, time_from_slice, time_half_from_slice},
+    reader::CifLine,
     Tiploc,
 };
 
 #[derive(Clone, Eq, PartialEq)]
 pub struct LocationOrigin {
-    record: Bytes,
+    record: CifLine,
 }
 
 impl LocationOrigin {
-    pub(crate) fn from_record(record: Bytes) -> Self {
+    pub(crate) fn from_record(record: CifLine) -> Self {
         Self { record }
     }
-    pub fn buf(&self) -> &Bytes {
+    pub fn buf(&self) -> &CifLine {
         &self.record
     }
 
@@ -79,7 +79,7 @@ mod test {
     fn should_parse_location_origin() {
         let i = b"LOCHRX    0015 00156  FL     TB                                                 ";
         assert_eq!(80, i.len());
-        let example = LocationOrigin::from_record(Bytes::from(i.as_ref()));
+        let example = LocationOrigin::from_record(*i);
         println!("{:?}", example);
         assert_eq!(example.tiploc().unwrap(), Tiploc::from("CHRX"));
         assert_eq!(example.tiploc_suffix().unwrap(), None);

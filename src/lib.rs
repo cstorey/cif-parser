@@ -1,5 +1,3 @@
-use bytes::Bytes;
-
 mod association;
 mod basic_schedule;
 mod change_en_route;
@@ -24,6 +22,7 @@ pub use header::Header;
 pub use location_intermediate::LocationIntermediate;
 pub use location_origin::LocationOrigin;
 pub use location_terminating::LocationTerminating;
+use reader::CifLine;
 pub use reader::{Reader, ReaderError, ReaderResult};
 pub use schedule_extra::ScheduleExtra;
 pub use tiploc::Tiploc;
@@ -45,7 +44,7 @@ pub enum Record {
     LocationTerminating(LocationTerminating),
     ChangeEnRoute(ChangeEnRoute),
     Trailer(Trailer),
-    Unrecognised(Bytes),
+    Unrecognised(CifLine),
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -64,7 +63,7 @@ pub enum Stp {
 }
 
 impl Record {
-    pub fn buf(&self) -> &Bytes {
+    pub fn buf(&self) -> &CifLine {
         match self {
             Record::Header(record) => record.buf(),
             Record::TiplocInsert(record) => record.buf(),

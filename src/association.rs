@@ -1,15 +1,15 @@
-use bytes::Bytes;
+use crate::reader::CifLine;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Association {
-    record: Bytes,
+    record: CifLine,
 }
 
 impl Association {
-    pub(crate) fn from_record(record: Bytes) -> Self {
+    pub(crate) fn from_record(record: CifLine) -> Self {
         Self { record }
     }
-    pub fn buf(&self) -> &Bytes {
+    pub fn buf(&self) -> &CifLine {
         &self.record
     }
 }
@@ -22,7 +22,6 @@ pub mod test {
         let assoc =
             b"AANY80987Y808801601041602121111100JJSPRST     TP                               P";
         assert_eq!(80, assoc.len());
-        let example = Association::from_record(Bytes::from(assoc.as_ref()));
-        drop(example);
+        let _example = Association::from_record(*assoc);
     }
 }
