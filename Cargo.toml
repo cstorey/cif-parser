@@ -13,7 +13,7 @@ lexical-core = "0.8.0"
 bitflags = "1.1.0"
 bytes = "1.0.0"
 thiserror = "1.0.20"
-fallible-iterator = "0.2.0"
+fallible-iterator = "0.3.0"
 tracing = "0.1.40"
 
 [dev-dependencies]
