@@ -12,7 +12,7 @@ chrono = "0.4.7"
 lexical-core = "1.0.2"
 bitflags = "2.4.1"
 bytes = "1.0.0"
-thiserror = "1.0.20"
+thiserror = "2.0.3"
 fallible-iterator = "0.3.0"
 tracing = "0.1.40"
 
